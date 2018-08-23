@@ -13,31 +13,31 @@ More RL & SL methods are updating!
 
 # Contents
 
-+ [Deep Deterministic Policy Gradient (DDPG)](algorithm/RL/DDPG.py)   
++ [Deep Deterministic Policy Gradient (DDPG)](model/RL/DDPG.py)   
 Implement of DDPG with TensorFlow.
     > arXiv:1509.02971: [Continuous control with deep reinforcement learning](https://arxiv.org/abs/1509.02971)
 
-+ [Double DQN](algorithm/RL/DoubleDQN.py)    
++ [Double DQN](model/RL/DoubleDQN.py)    
 Implement of Double-DQN with TensorFlow.   
     > arXiv:1509.06461: [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
     
-+ [Dueling-DQN](algorithm/RL/DuelingDQN.py)     
++ [Dueling-DQN](model/RL/DuelingDQN.py)     
 Implement of Dueling-DQN with TensorFlow.    
     > arXiv:1511.06581: [Dueling Network Architectures for Deep Reinforcement Learning](https://arxiv.org/abs/1511.06581)     
 
-+ [Policy Gradient](algorithm/RL/PolicyGradient.py)   
++ [Policy Gradient](model/RL/PolicyGradient.py)   
 Implement of Policy Gradient with TensorFlow.
     > NIPS. Vol. 99. 1999: [Policy gradient methods for reinforcement learning with function approximation](https://papers.nips.cc/paper/1713-policy-gradient-methods-for-reinforcement-learning-with-function-approximation.pdf)
 
-+ [DA-RNN (DualAttnRNN)](algorithm/SL/DualAttnRNN.py)      
++ [DA-RNN (DualAttnRNN)](model/SL/DualAttnRNN.py)      
 Implement of arXiv:1704.02971, DA-RNN with TensorFlow.
     > arXiv:1704.02971: [A Dual-Stage Attention-Based Recurrent Neural Network for Time Series Prediction](https://arxiv.org/abs/1704.02971)
 
-+ [TreNet (HNN)](algorithm/SL/TreNet.py)     
++ [TreNet (HNN)](model/SL/TreNet.py)     
 Implement of TreNet with TensorFlow.    
     > IJCAI 2017. [Hybrid Neural Networks for Learning the Trend in Time Series](https://www.ijcai.org/proceedings/2017/0316.pdf)
 
-+ [Naive-LSTM (LSTM)](algorithm/SL/NaiveLSTM.py)    
++ [Naive-LSTM (LSTM)](model/SL/NaiveLSTM.py)    
 Implement of simple LSTM based model with TensorFlow.    
     > arXiv:1506.02078: [Visualizing and Understanding Recurrent Networks](https://arxiv.org/abs/1506.02078)     
 
@@ -53,10 +53,10 @@ Also, more functions are updating.
 
 # Experiments
 
-+ [Deep Deterministic Policy Gradient (DDPG)](algorithm/SL/DualAttnRNN.py)
-+ [Double-DQN](algorithm/RL/DoubleDQN.py)    
-+ [Dueling-DQN](algorithm/RL/DuelingDQN.py)
-+ [Policy Gradient (PG)](algorithm/RL/PolicyGradient.py)     
++ [Deep Deterministic Policy Gradient (DDPG)](model/SL/DualAttnRNN.py)
++ [Double-DQN](model/RL/DoubleDQN.py)    
++ [Dueling-DQN](model/RL/DuelingDQN.py)
++ [Policy Gradient (PG)](model/RL/PolicyGradient.py)     
 Train a Agent to trade in stock market, using stock data set from 2012-01-01 to 2018-01-01 where 70% are training data, 30% are testing data.
 
 <p align='center'>
@@ -64,9 +64,9 @@ Train a Agent to trade in stock market, using stock data set from 2012-01-01 to 
    <em>Total Profits and Baseline Profits. (Test Set)</em>
 </p>
 
-+ [DA-RNN (DualAttnRNN)](algorithm/SL/DualAttnRNN.py)   
-+ [Naive-LSTM (LSTM)](algorithm/SL/NaiveLSTM.py)      
-+ [TreNet (HNN)](algorithm/SL/TreNet.py)     
++ [DA-RNN (DualAttnRNN)](model/SL/DualAttnRNN.py)   
++ [Naive-LSTM (LSTM)](model/SL/NaiveLSTM.py)      
++ [TreNet (HNN)](model/SL/TreNet.py)     
 Train a Predictor to predict stock prices, using stock data set from 2008-01-01 to 2018-01-01, where 70% are training data, 30% are testing data.
 
 <p align='center'>

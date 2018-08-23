@@ -4,7 +4,7 @@ import tensorflow as tf
 import logging
 import os
 
-from algorithm import config
+from model import config
 from base.env.market import Market
 from checkpoints import CHECKPOINTS_DIR
 from base.algorithm.model import BaseSLTFModel
