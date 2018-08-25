@@ -9,8 +9,8 @@ from utility.logger import get_logger
 class BaseDataSource(object):
 
     def __init__(self,
-                 label_name_selected,
-                 label_names,
+                 label_name_selected: str,
+                 label_names: list,
                  train_start_date='2010-01-01',
                  train_end_date='2010-01-03',
                  validate_start_date='2010-01-03',

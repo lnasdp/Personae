@@ -1,5 +1,12 @@
-# Dirs.
+
 .idea
+
 *.log
+
 *.ipynb_checkpoints
+
 *.local
+
+*.csv
+
+*.pkl

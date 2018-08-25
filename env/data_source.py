@@ -1,9 +1,15 @@
 # coding=utf-8
 
+import multiprocessing as mp
 import pandas as pd
+import hashlib
 import config
+import os
 
+from utility import factor_calculator
+from utility.logger import TimeInspector
 from base.data_source import BaseDataSource
+from spider.stock_spider import StockSpider
 
 
 class TestDataSource(BaseDataSource):
@@ -63,8 +69,68 @@ class TuShareDataSource(BaseDataSource):
         self.instruments = config.DEFAULT_INSTRUMENTS
 
     def _load_origin_data(self):
-        pass
+        self.logger.info('Start load origin data.')
+        # Get md5 object.
+        md5 = hashlib.md5()
+        md5.update(''.join(self.instruments).encode('utf-8'))
+        # Get cache data name.
+        cache_data_name = md5.hexdigest()
+        cache_data_path = os.path.join(config.CACHE_DIR, '{}.pkl'.format(cache_data_name))
+        self.logger.info('Cache data name is {}'.format(cache_data_name))
+        if not os.path.exists(cache_data_path):
+            self.logger.warning('Cache data not exists, start crawling and saving cache.')
+            # If cache data not exist, crawl it.
+            self.crawl_origin_data()
+            self.origin_df = self.save_origin_data(cache_data_name)
+        else:
+            self.logger.info('Cache data exists, read from cache.')
+            self.origin_df = pd.read_pickle(cache_data_path)
+            self.logger.info('Finished reading from cache.')
 
+    def crawl_origin_data(self):
+        self.logger.warning('Start crawling origin data.')
+        TimeInspector.set_time_mark()
+        # Crawling.
+        instrument_count = len(self.instruments)
+        pool = mp.Pool(instrument_count if instrument_count < 8 else 8)
+        for instrument in self.instruments:
+            if not os.path.exists(os.path.join(config.STOCK_DATA_DIR, '{}.csv'.format(instrument))):
+                stock_spider = StockSpider(instrument, '2018-01-01', '2018-04-01')
+                pool.apply_async(stock_spider.crawl)
+        pool.close()
+        pool.join()
+        self.logger.warning('Finished crawling origin data, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+
+    def calculate_factors(self, origin_df):
+        self.logger.warning('Start calculating factors.')
+        self.logger.warning('Start calculating factor: [alpha].')
+        TimeInspector.set_time_mark()
+        origin_df['alpha'] = factor_calculator.calculate_alpha(origin_df)
+        self.logger.warning('Finished calculating factor: [alpha], time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+        self.logger.warning('Finished calculating all factors.')
+        return origin_df
+
+    def save_origin_data(self, cache_data_name):
+        self.logger.warning('Start saving cache data.')
+        TimeInspector.set_time_mark()
+        # Concat and cache.
+        instrument_frames = []
+        for instrument in self.instruments:
+            stock_frame = pd.read_csv(os.path.join(config.STOCK_DATA_DIR, '{}.csv'.format(instrument)),
+                                      dtype={'code': str})
+            instrument_frames.append(stock_frame)
+        origin_df = pd.concat(instrument_frames)  # type: pd.DataFrame
+        origin_df = origin_df.rename(columns={'date': 'datetime', 'code': 'instrument'})
+        origin_df = origin_df.set_index(['instrument', 'datetime'])
+        # Cache data path
+        if not os.path.exists(config.CACHE_DIR):
+            os.makedirs(config.CACHE_DIR)
+        origin_df = origin_df.sort_index(level=['instrument', 'datetime'])
+        # Calculate factors.
+        origin_df = self.calculate_factors(origin_df)
+        origin_df.to_pickle(os.path.join(config.CACHE_DIR, '{}.pkl'.format(cache_data_name)))
+        self.logger.warning('Finished saving cache data, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+        return origin_df
 
 
 class RiceQuantDataSource(BaseDataSource):
@@ -72,4 +138,4 @@ class RiceQuantDataSource(BaseDataSource):
 
 
 if __name__ == '__main__':
-    ds = TestDataSource()
+    ts = TuShareDataSource('alpha', ['alpha'])

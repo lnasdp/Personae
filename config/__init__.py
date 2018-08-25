@@ -13,6 +13,7 @@ DEFAULT_LOG_DIR = os.path.join(TEMP_DIR, 'log')
 SAVED_MODEL_DIR = os.path.join(TEMP_DIR, 'model')
 DATA_DIR = os.path.join(TEMP_DIR, 'data')
 STOCK_DATA_DIR = os.path.join(DATA_DIR, 'stock')
+CACHE_DIR = os.path.join(TEMP_DIR, 'cache')
 
 # Data source.
 KEY_NEED_NORMALIZE_DATA = 'need_normalize_data'

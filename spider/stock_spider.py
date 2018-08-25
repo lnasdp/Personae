@@ -25,6 +25,7 @@ class StockSpider(object):
         stock_frame = ts.get_k_data(code=self.instrument,
                                     start=self.start_date,
                                     end=self.end_date, retry_count=20)  # type: pd.DataFrame
+        stock_frame = stock_frame.set_index('date')
         # Save to disk.
         if not os.path.exists(config.STOCK_DATA_DIR):
             os.makedirs(config.STOCK_DATA_DIR)
@@ -39,8 +40,7 @@ class StockSpider(object):
                               )
 
 
-if __name__ == '__main__':
-    args = spider_args_parser.parse_args()
+def main(args):
     # args.
     instruments = args.instruments
     start_date = args.start_date
@@ -50,8 +50,12 @@ if __name__ == '__main__':
     # crawling.
     pool = mp.Pool(processes=process_count)
     for instrument in instruments:
-        spider = StockSpider(instrument, start_date='2018-01-01', end_date='2018-01-10')
+        spider = StockSpider(instrument, start_date=start_date, end_date=end_date)
         pool.apply_async(spider.crawl())
     pool.close()
     pool.join()
 
+
+if __name__ == '__main__':
+    _args = spider_args_parser.parse_args()
+    main(_args)
