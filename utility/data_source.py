@@ -8,7 +8,7 @@ import os
 
 from utility import factor_calculator
 from utility.logger import TimeInspector
-from base.data_source import BaseDataSource
+from base.utility.data_source import BaseDataSource
 from spider.stock_spider import StockSpider
 
 
@@ -18,7 +18,7 @@ class TestDataSource(BaseDataSource):
         self.instruments = ['600001', '600002']
 
     def _load_origin_data(self):
-        columns = ['instrument', 'datetime', 'open', 'close', 'high', 'low', 'volume', 'label']
+        columns = ['instrument', 'datetime', 'open', 'close', 'high', 'low', 'volume', 'alpha']
         data = [
             ('600001', '2010-01-01', 3.5, 4.0, 4.1, 3.6, 10000, 1),
             ('600001', '2010-01-02', 4.0, 4.4, 4.6, 3.9, 9000, 0),
@@ -40,8 +40,8 @@ class TestDataSource(BaseDataSource):
 class TuShareDataSource(BaseDataSource):
 
     def __init__(self,
-                 label_name_selected,
-                 label_names,
+                 label_name_selected='alpha',
+                 label_names=None,
                  train_start_date='2010-01-01',
                  train_end_date='2010-01-03',
                  validate_start_date='2010-01-03',
@@ -138,4 +138,5 @@ class RiceQuantDataSource(BaseDataSource):
 
 
 if __name__ == '__main__':
-    ts = TuShareDataSource('alpha', ['alpha'])
+    sm = TestDataSource()
+    ts = TuShareDataSource()
