@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import pandas as pd
+import config
 
 from base.data_source import BaseDataSource
 
@@ -31,7 +32,39 @@ class TestDataSource(BaseDataSource):
 
 
 class TuShareDataSource(BaseDataSource):
-    pass
+
+    def __init__(self,
+                 label_name_selected,
+                 label_names,
+                 train_start_date='2010-01-01',
+                 train_end_date='2010-01-03',
+                 validate_start_date='2010-01-03',
+                 validate_end_date='2010-01-05',
+                 test_start_date='2010-01-05',
+                 test_end_date='2010-01-07',
+                 **options):
+        super(TuShareDataSource, self).__init__(label_name_selected,
+                                                label_names,
+                                                train_start_date,
+                                                train_end_date,
+                                                validate_start_date,
+                                                validate_end_date,
+                                                test_start_date,
+                                                test_end_date,
+                                                **options)
+
+    def _load_instruments(self):
+        # 600030 中信证券
+        # 600999 招商证券
+        # 000166 申万宏源
+        # 600837 海通证券
+        # 601066 中信建投
+        # 002673 西部证券
+        self.instruments = config.DEFAULT_INSTRUMENTS
+
+    def _load_origin_data(self):
+        pass
+
 
 
 class RiceQuantDataSource(BaseDataSource):

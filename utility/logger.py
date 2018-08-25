@@ -22,7 +22,7 @@ def get_logger(module_name,
     if module_name in loggers_map:
         return loggers_map[module_name]
     # Make log and dir path.
-    dir_path = os.path.join(log_dir, config.DATETIME_LOAD_MODULE)
+    dir_path = os.path.join(log_dir)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     log_path = os.path.join(dir_path, '{}.log'.format(module_name))

@@ -11,9 +11,14 @@ PROJECT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)))
 TEMP_DIR = os.path.join(PROJECT_DIR, 'temp')
 DEFAULT_LOG_DIR = os.path.join(TEMP_DIR, 'log')
 SAVED_MODEL_DIR = os.path.join(TEMP_DIR, 'model')
+DATA_DIR = os.path.join(TEMP_DIR, 'data')
+STOCK_DATA_DIR = os.path.join(DATA_DIR, 'stock')
 
 # Data source.
 KEY_NEED_NORMALIZE_DATA = 'need_normalize_data'
+
+# Spider.
+DEFAULT_INSTRUMENTS = ['600030', '600999', '000166', '600837', '601066', '002673']
 
 # A3C
 KEY_SESSION_CONFIG = 'session_config'
