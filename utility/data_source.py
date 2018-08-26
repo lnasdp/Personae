@@ -40,7 +40,7 @@ class TestDataSource(BaseDataSource):
 class TuShareDataSource(BaseDataSource):
 
     def __init__(self,
-                 label_name_selected='alpha',
+                 label_name_selected=config.RETURN_RATE,
                  label_names=None,
                  train_start_date='2010-01-01',
                  train_end_date='2010-01-03',
@@ -50,7 +50,7 @@ class TuShareDataSource(BaseDataSource):
                  test_end_date='2010-01-07',
                  **options):
         super(TuShareDataSource, self).__init__(label_name_selected,
-                                                label_names,
+                                                label_names if label_names else [config.RETURN_RATE],
                                                 train_start_date,
                                                 train_end_date,
                                                 validate_start_date,
@@ -103,10 +103,16 @@ class TuShareDataSource(BaseDataSource):
 
     def calculate_factors(self, origin_df):
         self.logger.warning('Start calculating factors.')
-        self.logger.warning('Start calculating factor: [alpha].')
+        # 1. Return rate.
+        self.logger.warning('Start calculating factor: [{}].'.format(config.RETURN_RATE))
         TimeInspector.set_time_mark()
-        origin_df['alpha'] = factor_calculator.calculate_alpha(origin_df)
-        self.logger.warning('Finished calculating factor: [alpha], time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+        origin_df[config.RETURN_RATE] = factor_calculator.calculate_return_rate(origin_df)
+        self.logger.warning('Finished calculating factor: [{0}], time cost: {1:.3f}'.format(config.RETURN_RATE, TimeInspector.get_cost_time()))
+        # 2. Price diff.
+        # self.logger.warning('Start calculating factor: [{}].'.format(config.PRICE_DIFF))
+        # TimeInspector.set_time_mark()
+        # origin_df[config.PRICE_DIFF] = factor_calculator.calculate_price_diff(origin_df)
+        # self.logger.warning('Finished calculating factor: [{0}], time cost: {1:.3f}'.format(config.PRICE_DIFF, TimeInspector.get_cost_time()))
         self.logger.warning('Finished calculating all factors.')
         return origin_df
 
@@ -139,5 +145,5 @@ class RiceQuantDataSource(BaseDataSource):
 
 
 if __name__ == '__main__':
-    sm = TestDataSource()
+    # te = TestDataSource(label_name_selected='alpha', label_names=['alpha'])
     ts = TuShareDataSource()

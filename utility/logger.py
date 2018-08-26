@@ -17,7 +17,7 @@ def get_logger(module_name,
                log_dir=config.DEFAULT_LOG_DIR,
                enable_fh=True,
                sh_level=logging.WARNING,
-               fh_level=logging.INFO):
+               fh_level=logging.DEBUG):
     # If logger exist, return.
     if module_name in loggers_map:
         return loggers_map[module_name]

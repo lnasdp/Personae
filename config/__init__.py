@@ -1,5 +1,6 @@
 # coding=utf-8
 
+import logging
 import os
 
 from datetime import datetime
@@ -16,7 +17,12 @@ STOCK_DATA_DIR = os.path.join(DATA_DIR, 'stock')
 CACHE_DIR = os.path.join(TEMP_DIR, 'cache')
 
 # Backtest.
+ROE = 'roe'
+CLOSE = 'close'
 AMOUNT = 'amount'
+PROFITS = 'profits'
+RETURN_RATE = 'return_rate'
+PRICE_DIFF = 'price_diff'
 
 # Data source.
 KEY_NEED_NORMALIZE_DATA = 'need_normalize_data'
@@ -50,3 +56,8 @@ KEY_BUFFER_SIZE = 'buffer_size'
 KET_EPSILON = 'epsilon'
 KEY_GAMMA = 'gamma'
 KEY_TAU = 'tau'
+
+# Log level.
+LEVEL_DEBUG = logging.DEBUG
+LEVEL_INFO = logging.INFO
+LEVEL_WARNING = logging.WARNING

@@ -9,8 +9,8 @@ from utility.logger import get_logger
 class BaseDataSource(object):
 
     def __init__(self,
-                 label_name_selected='alpha',
-                 label_names=None,
+                 label_name_selected,
+                 label_names,
                  train_start_date='2010-01-01',
                  train_end_date='2010-01-03',
                  validate_start_date='2010-01-03',
@@ -23,7 +23,7 @@ class BaseDataSource(object):
         self.origin_df = None
         self.features_df = None
         self.label_name_selected = label_name_selected
-        self.label_names = label_names if label_names else ['alpha']
+        self.label_names = label_names
         self.x_train = None
         self.y_train = None
         self.x_validate = None
