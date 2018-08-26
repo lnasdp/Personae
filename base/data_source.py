@@ -21,6 +21,7 @@ class BaseDataSource(object):
         # 1.1 Data related property.
         self.instruments = None
         self.origin_df = None
+        self.features_df = None
         self.label_name_selected = label_name_selected
         self.label_names = label_names if label_names else ['alpha']
         self.x_train = None
@@ -47,6 +48,7 @@ class BaseDataSource(object):
         self.test_df = self.origin_df.loc(axis=0)[:, self.test_start_date: self.test_end_date]
         self.df_columns = self.origin_df.columns.tolist()
         self.feature_columns = list(set(self.df_columns) - set(self.label_names))
+        self.features_df = self.origin_df[self.feature_columns]
         # 4. Options property.
         try:
             self.need_normalize_data = options[config.KEY_NEED_NORMALIZE_DATA]

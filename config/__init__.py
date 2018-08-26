@@ -15,6 +15,9 @@ DATA_DIR = os.path.join(TEMP_DIR, 'data')
 STOCK_DATA_DIR = os.path.join(DATA_DIR, 'stock')
 CACHE_DIR = os.path.join(TEMP_DIR, 'cache')
 
+# Backtest.
+AMOUNT = 'amount'
+
 # Data source.
 KEY_NEED_NORMALIZE_DATA = 'need_normalize_data'
 

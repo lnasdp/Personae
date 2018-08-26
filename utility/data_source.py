@@ -8,7 +8,7 @@ import os
 
 from utility import factor_calculator
 from utility.logger import TimeInspector
-from base.utility.data_source import BaseDataSource
+from base.data_source import BaseDataSource
 from spider.stock_spider import StockSpider
 
 
@@ -117,7 +117,8 @@ class TuShareDataSource(BaseDataSource):
         instrument_frames = []
         for instrument in self.instruments:
             stock_frame = pd.read_csv(os.path.join(config.STOCK_DATA_DIR, '{}.csv'.format(instrument)),
-                                      dtype={'code': str})
+                                      dtype={'code': str},
+                                      parse_dates=['date'])
             instrument_frames.append(stock_frame)
         origin_df = pd.concat(instrument_frames)  # type: pd.DataFrame
         origin_df = origin_df.rename(columns={'date': 'datetime', 'code': 'instrument'})
