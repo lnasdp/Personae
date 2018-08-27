@@ -24,6 +24,6 @@ if __name__ == '__main__':
     from utility.data_source import TuShareDataSource
     from utility.backtest import Backtest
     ds = TuShareDataSource()
-    bt = Backtest(ds, SampleStrategy(), '2018-01-01', '2018-03-01', sh_level=config.LEVEL_DEBUG, cash=1e5)
+    bt = Backtest(ds, SampleStrategy(), '2018-01-01', '2018-03-01', sh_level=config.LEVEL_INFO, cash=1e5)
     bt.start()
     bt.analyze()

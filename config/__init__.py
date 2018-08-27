@@ -18,9 +18,11 @@ CACHE_DIR = os.path.join(TEMP_DIR, 'cache')
 
 # Backtest.
 ROE = 'roe'
+CASH = 'cash'
 CLOSE = 'close'
 AMOUNT = 'amount'
 PROFITS = 'profits'
+HOLDINGS = 'holdings'
 RETURN_RATE = 'return_rate'
 PRICE_DIFF = 'price_diff'
 
@@ -43,6 +45,7 @@ KEY_TRAIN_STEPS_LIMIT = 'train_steps_limit'
 KEY_BATCH_SIZE_EVALUATE = 'batch_size_eval'
 KEY_TRAIN_SAVE_STEPS = 'train_save_steps'
 KEY_BATCH_SIZE_TRAIN = 'batch_size_train'
+KEY_LOSS_FUNC_NAME = 'loss_func_name'
 KEY_LEARNING_RATE = 'learning_rate'
 KEY_DROPOUT_PROB = 'dropout_prob'
 KEY_SEQ_LENGTH = 'seq_length'

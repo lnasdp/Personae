@@ -19,32 +19,29 @@ class Backtest(object):
                  slippage=0.05,
                  trade_fee_rate=0.004,
                  sh_level=logging.INFO):
-        # 1. Data source.
-        self.data_source = data_source
-        # 2. Strategy.
-        self.strategy = strategy
-        # 3. Dates.
+
+        # 1. Date related property.
         self.start_date = start_date
         self.end_date = end_date
-        # 4. Sliced features df.
+
+        # 2. Data source and data related property.
+        self.data_source = data_source
         self.features_df = self.data_source.features_df.loc(axis=0)[:, self.start_date: self.end_date]
-        # 5.1 Check iter dates.
-        self.dates = self.features_df.index.get_level_values(level=1).unique().tolist()
-        if len(self.dates) < 2:
-            raise ValueError('Invalid iter dates length, less than 2 bars.')
-        # 5.2 Iter dates.
-        self.iter_dates = iter(self.dates)
-        self.last_date = pd.Timestamp('1970-01-01')
-        self.current_date = next(self.iter_dates)
-        self.next_date = next(self.iter_dates)
-        # 4. Market setting.
+
+        # 3. Iteration related property.
+        self.available_dates = self.features_df.index.get_level_values(level=1).unique().tolist()
+        self.iter_dates = iter(self.available_dates)
+
+        # 4. Strategy.
+        self.strategy = strategy
+
+        # 5. Market related property.
         self.cash = cash
         self.initial_cash = cash
         self.slippage = slippage
         self.trade_fee_rate = trade_fee_rate
-        # 5. Positions.
-        self.positions = pd.Series(index=self.features_df.index,
-                                   data=0)
+        self.positions = pd.Series(index=self.features_df.index, data=0)
+
         # 6. Metrics.
         self.metric_df = pd.DataFrame(index=self.features_df.index.get_level_values(level=1).unique()[:-1],
                                       columns=[config.PROFITS, config.ROE],
@@ -54,59 +51,92 @@ class Backtest(object):
         self.logger = get_logger('Backtest', sh_level=sh_level)
 
     def start(self):
-        last_bar_price = self.features_df.loc(axis=0)[:, self.current_date][config.CLOSE]
-        last_bar_positions = self.positions.loc(axis=0)[:, self.current_date]
-        # Start backtest.
+
+        # 1. Check available dates.
+        if len(self.available_dates) < 2:
+            raise ValueError('Invalid iter dates length, less than 2 bars.')
+
+        # 2. Init iter dates.
+        last_date, current_date, next_date = pd.Timestamp('1970-01-01'), next(self.iter_dates), next(self.iter_dates)
+
+        # 3. Init market info and setting.
+        cash = self.cash
+        initial_cash = cash
+        holdings = 0
+        last_bar_price = self.features_df.loc(axis=0)[:, current_date][config.CLOSE]
+        last_bar_positions = self.positions.loc(axis=0)[:, current_date]
+
+        # 4. Start backtest.
         while True:
-            self.logger.debug('On date: {}.'.format(self.current_date))
-            # 1. Apply before_trading()
-            if self.current_date.day > self.last_date.day:
-                self.strategy.before_trading(self.current_date)
+
+            # 4.1. Apply before_trading()
+            self.logger.debug('On date: {}.'.format(current_date))
+            if current_date.day > last_date.day:
+                self.strategy.before_trading(current_date)
                 self.logger.debug('`before_trading` called.')
-            # 2. Apply handle_bar().
-            current_bar_df = self.features_df.loc(axis=0)[:, self.current_date]  # type: pd.DataFrame
-            current_bar_positions = self.strategy.handle_bar(current_bar_df, self.current_date)  # type: pd.Series
+
+            # 4.2 Apply handle_bar() and get bar positions.
+            current_bar_df = self.features_df.loc(axis=0)[:, current_date]  # type: pd.DataFrame
+            current_bar_positions = self.strategy.handle_bar(current_bar_df, current_date)  # type: pd.Series
             self.logger.debug('`handle_bar` called.')
-            # 3. Update positions_df.
-            self.positions.loc(axis=0)[:, self.current_date] = current_bar_positions
-            # 4. Calculate p&l.
+
+            # 4.3. Update positions.
+            self.positions.loc(axis=0)[:, current_date] = current_bar_positions
+
+            # 4.4. Ger current bar price.
             current_bar_price = current_bar_df[config.CLOSE]
-            # 4.1 Calculate trade cost.
+
+            # 4.5. Calculate last and current positions diff.
             positions_diff = current_bar_positions.values - last_bar_positions.values
+
+            # 4.6. Calculate trade cost.
             trade_cost = (current_bar_price * positions_diff).sum()
-            self.logger.debug('Trade cost is {0}'.format(trade_cost))
-            # 4.2 Calculate trade fee.
+
+            # 4.7. Calculate trade fee.
             trade_fee = trade_cost * self.trade_fee_rate + positions_diff.sum() * self.slippage
-            self.logger.debug('Trade fee is {0}'.format(trade_fee))
-            # 4.3 Calculate profits, here we need values, due to multi-index can not sub directly.
-            close_diff = current_bar_price.values - last_bar_price.values
-            profits = (close_diff * last_bar_positions).sum()
-            self.logger.debug('Profits is {0}'.format(profits))
-            # 4.4 Update cash.
-            self.logger.debug('Cash before p&l is {0}'.format(self.cash))
-            self.cash -= (trade_cost + trade_fee)
-            self.cash += profits
-            self.logger.debug('Cash after p&l is {0}'.format(self.cash))
-            # 4.6 Calculate Holding values.
-            holding_values = (current_bar_price * current_bar_positions).sum()
-            self.logger.debug('Holding values is {}'.format(holding_values))
-            # 4.7 Calculate roe.
-            roe = (profits + self.cash + holding_values) / self.initial_cash
-            self.logger.debug('RoE is {}'.format(roe))
-            # 4.8 Update metric.
-            self.metric_df.loc(axis=0)[self.current_date][config.ROE] = roe
-            self.metric_df.loc(axis=0)[self.current_date][config.PROFITS] = profits
+
+            # 4.8. Calculate last and current bar price diff.
+            bar_price_diff = current_bar_price.values - last_bar_price.values
+
+            # 4.9. Calculate bar profits.
+            profits = (bar_price_diff * last_bar_positions).sum()
+
+            # 4.10. Update cash.
+            cash -= (trade_cost + trade_fee)
+            cash += profits
+
+            # 4.11. Update holding values.
+            holdings = (current_bar_price * current_bar_positions).sum()
+
+            # 4.12 Calculate roe.
+            roe = (profits + cash + holdings) / initial_cash
+
+            self.logger.info('RoE: {0:.4f} | '
+                             'Cash: {1:.2f} | '
+                             'Holdings: {2:.2f} | '
+                             'Profits: {3:.2f} | '
+                             'Fee: {4:.2f} | '
+                             'Cost: {5:.2f}'.format(roe, cash, holdings, profits, trade_fee, trade_cost))
+
+            # 4.13 Update metric.
+            self.metric_df.loc(axis=0)[current_date][config.ROE] = roe
+            self.metric_df.loc(axis=0)[current_date][config.CASH] = roe
+            self.metric_df.loc(axis=0)[current_date][config.PROFITS] = profits
+            self.metric_df.loc(axis=0)[current_date][config.HOLDINGS] = holdings
+
             # 5. Apply after_trading().
-            if self.current_date.day + 1 == self.next_date.day:
-                self.strategy.after_trading(self.current_date)
+            if current_date.day + 1 == next_date.day:
+                self.strategy.after_trading(current_date)
                 self.logger.debug('`after_trading` called.')
+
             # 6. Update dates.
-            self.last_date = self.current_date
-            self.current_date = self.next_date
+            last_date = current_date
+            current_date = next_date
             last_bar_price = current_bar_price
             last_bar_positions = current_bar_positions
+
             try:
-                self.next_date = next(self.iter_dates)
+                next_date = next(self.iter_dates)
             except StopIteration:
                 self.logger.warning('Iter dates reached end, backtest over.')
                 break
