@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import logging
 import config
+import os
 
 from utility.logger import get_logger
 
@@ -17,6 +18,7 @@ class Backtest(object):
                  end_date,
                  cash=1.e8,
                  slippage=0.05,
+                 bench_mark='000905',
                  trade_fee_rate=0.004,
                  sh_level=logging.INFO):
 
@@ -27,6 +29,7 @@ class Backtest(object):
         # 2. Data source and data related property.
         self.data_source = data_source
         self.features_df = self.data_source.features_df.loc(axis=0)[:, self.start_date: self.end_date]
+        self.benchmark = bench_mark
 
         # 3. Iteration related property.
         self.available_dates = self.features_df.index.get_level_values(level=1).unique().tolist()
@@ -44,7 +47,14 @@ class Backtest(object):
 
         # 6. Metrics.
         self.metric_df = pd.DataFrame(index=self.features_df.index.get_level_values(level=1).unique()[:-1],
-                                      columns=[config.PROFITS, config.ROE],
+                                      columns=[config.ROE,
+                                               config.RETURN_RATE,
+                                               config.ALPHA,
+                                               config.BETA,
+                                               config.BETA_ROE,
+                                               config.CASH,
+                                               config.PROFITS,
+                                               config.HOLDINGS],
                                       data=0,
                                       dtype=float)
         # 7. Others.
@@ -62,9 +72,15 @@ class Backtest(object):
         # 3. Init market info and setting.
         cash = self.cash
         initial_cash = cash
-        holdings = 0
-        last_bar_price = self.features_df.loc(axis=0)[:, current_date][config.CLOSE]
+        last_roe = 1.0
+        last_beta_roe = 1.0
         last_bar_positions = self.positions.loc(axis=0)[:, current_date]
+        last_bar_price = self.features_df.loc(axis=0)[:, current_date][config.CLOSE]
+
+        try:
+            last_benchmark_bar_price = self.features_df.loc(axis=0)[self.benchmark, current_date][config.CLOSE]
+        except KeyError:
+            raise KeyError('Benchmark: {}, not found, please run spider to crawl it first.'.format(self.benchmark))
 
         # 4. Start backtest.
         while True:
@@ -78,6 +94,7 @@ class Backtest(object):
             # 4.2 Apply handle_bar() and get bar positions.
             current_bar_df = self.features_df.loc(axis=0)[:, current_date]  # type: pd.DataFrame
             current_bar_positions = self.strategy.handle_bar(current_bar_df, current_date)  # type: pd.Series
+            current_benchmark_bar_price = current_bar_df.loc(axis=0)[self.benchmark, current_date][config.CLOSE]
             self.logger.debug('`handle_bar` called.')
 
             # 4.3. Update positions.
@@ -108,21 +125,39 @@ class Backtest(object):
             # 4.11. Update holding values.
             holdings = (current_bar_price * current_bar_positions).sum()
 
-            # 4.12 Calculate roe.
+            # 4.12. Calculate roe.
             roe = (profits + cash + holdings) / initial_cash
 
+            # 4.13. Calculate return rate.
+            return_rate = roe - last_roe
+
+            # 4.14. Calculate beta.
+            beta = current_benchmark_bar_price / last_benchmark_bar_price - 1
+
+            # 4.13. Calculate alpha.
+            alpha = return_rate - beta
+
+            # 4.15. Calculate beta roe.
+            beta_roe = last_beta_roe * (1 + beta)
+
             self.logger.info('RoE: {0:.4f} | '
-                             'Cash: {1:.2f} | '
-                             'Holdings: {2:.2f} | '
-                             'Profits: {3:.2f} | '
-                             'Fee: {4:.2f} | '
-                             'Cost: {5:.2f}'.format(roe, cash, holdings, profits, trade_fee, trade_cost))
+                             'Return Rate: {1:.4f} | '
+                             'Cash: {2:.2f} | '
+                             'Holdings: {3:.2f} | '
+                             'Profits: {4:.2f} | '
+                             'Fee: {5:.2f} | '
+                             'Cost: {6:.2f}'.format(roe, return_rate, cash, holdings, profits, trade_fee, trade_cost))
 
             # 4.13 Update metric.
-            self.metric_df.loc(axis=0)[current_date][config.ROE] = roe
-            self.metric_df.loc(axis=0)[current_date][config.CASH] = roe
-            self.metric_df.loc(axis=0)[current_date][config.PROFITS] = profits
-            self.metric_df.loc(axis=0)[current_date][config.HOLDINGS] = holdings
+            metric_values = roe, return_rate, alpha, beta, beta_roe, cash, profits, holdings
+            self.metric_df.loc(axis=0)[current_date][config.ROE,
+                                                     config.RETURN_RATE,
+                                                     config.ALPHA,
+                                                     config.BETA,
+                                                     config.BETA_ROE,
+                                                     config.CASH,
+                                                     config.PROFITS,
+                                                     config.HOLDINGS] = metric_values
 
             # 5. Apply after_trading().
             if current_date.day + 1 == next_date.day:
@@ -130,10 +165,13 @@ class Backtest(object):
                 self.logger.debug('`after_trading` called.')
 
             # 6. Update dates.
+            last_roe = roe
+            last_beta_roe = beta_roe
             last_date = current_date
             current_date = next_date
             last_bar_price = current_bar_price
             last_bar_positions = current_bar_positions
+            last_benchmark_bar_price = current_benchmark_bar_price
 
             try:
                 next_date = next(self.iter_dates)
@@ -142,6 +180,25 @@ class Backtest(object):
                 break
 
     def analyze(self):
-        from matplotlib import pyplot as plt
-        self.metric_df[config.ROE].plot()
-        plt.show()
+        # RoE.
+        roe = self.metric_df[config.ROE][-1]
+        # Beta roe.
+        beta_roe = self.metric_df[config.BETA_ROE][-1]
+        # Sharpe.
+        sharpe = self.metric_df[config.RETURN_RATE].mean() / self.metric_df[config.RETURN_RATE].std() * np.sqrt(250)
+        # Beta sharpe.
+        beta_sharpe = self.metric_df[config.BETA].mean() / self.metric_df[config.BETA].std() * np.sqrt(250)
+        # AnR
+        annualized_return = roe / (len(self.available_dates) - 1) / 250
+        # Beta AnR
+        annualized_beta = beta_roe / (len(self.available_dates) - 1) / 250
+        # Result.
+        result_metric = pd.DataFrame(index=pd.MultiIndex.from_product([['Alpha', 'Beta'], ['RoE', 'Sharpe', 'AnR']]),
+                                     data=[roe,
+                                           sharpe,
+                                           annualized_return,
+                                           beta_roe,
+                                           beta_sharpe,
+                                           annualized_beta],
+                                     columns=['Indicator'])
+        return result_metric

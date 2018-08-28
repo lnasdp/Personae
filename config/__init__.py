@@ -17,20 +17,23 @@ STOCK_DATA_DIR = os.path.join(DATA_DIR, 'stock')
 CACHE_DIR = os.path.join(TEMP_DIR, 'cache')
 
 # Backtest.
-ROE = 'roe'
+ROE = 'RoE'
 CASH = 'cash'
+BETA = 'beta'
 CLOSE = 'close'
+ALPHA = 'alpha'
 AMOUNT = 'amount'
 PROFITS = 'profits'
 HOLDINGS = 'holdings'
-RETURN_RATE = 'return_rate'
+BETA_ROE = 'beta_roe'
 PRICE_DIFF = 'price_diff'
+RETURN_RATE = 'return_rate'
 
 # Data source.
 KEY_NEED_NORMALIZE_DATA = 'need_normalize_data'
 
 # Spider.
-DEFAULT_INSTRUMENTS = ['600030', '600999', '000166', '600837', '601066', '002673']
+DEFAULT_INSTRUMENTS = ['600030', '600999', '000166', '600837', '601066', '002673', '000905']
 
 # A3C
 KEY_SESSION_CONFIG = 'session_config'
