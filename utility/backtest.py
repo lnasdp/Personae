@@ -180,25 +180,35 @@ class Backtest(object):
                 break
 
     def analyze(self):
+        # Return rate series.
+        return_rate = self.metric_df[config.RETURN_RATE]
         # RoE.
         roe = self.metric_df[config.ROE][-1]
         # Beta roe.
         beta_roe = self.metric_df[config.BETA_ROE][-1]
         # Sharpe.
-        sharpe = self.metric_df[config.RETURN_RATE].mean() / self.metric_df[config.RETURN_RATE].std() * np.sqrt(250)
+        sharpe = return_rate.mean() / return_rate.std() * np.sqrt(250)
+        # Beta.
+        beta = self.metric_df[config.BETA]
         # Beta sharpe.
-        beta_sharpe = self.metric_df[config.BETA].mean() / self.metric_df[config.BETA].std() * np.sqrt(250)
+        beta_sharpe = beta.mean() / beta.std() * np.sqrt(250)
         # AnR
         annualized_return = roe / (len(self.available_dates) - 1) / 250
         # Beta AnR
         annualized_beta = beta_roe / (len(self.available_dates) - 1) / 250
+        # Max Drawdown.
+        mdd = ((return_rate.cumsum() - return_rate.cumsum().cummax()) / (1 + return_rate.cumsum().cummax())).min()
+        # Beta max drawdown.
+        beta_mdd = ((beta.cumsum() - beta.cumsum().cummax()) / (1 + beta.cumsum().cummax())).min()
         # Result.
-        result_metric = pd.DataFrame(index=pd.MultiIndex.from_product([['Alpha', 'Beta'], ['RoE', 'Sharpe', 'AnR']]),
+        result_metric = pd.DataFrame(index=pd.MultiIndex.from_product([['Alpha', 'Beta'], ['RoE', 'Sharpe', 'AnR', 'MDD']]),
                                      data=[roe,
                                            sharpe,
                                            annualized_return,
+                                           mdd,
                                            beta_roe,
                                            beta_sharpe,
-                                           annualized_beta],
+                                           annualized_beta,
+                                           beta_mdd],
                                      columns=['Indicator'])
         return result_metric
