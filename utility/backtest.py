@@ -179,7 +179,7 @@ class Backtest(object):
                 self.logger.warning('Iter dates reached end, backtest over.')
                 break
 
-    def analyze(self):
+    def analyze(self, verbose=True):
         # Return rate series.
         return_rate = self.metric_df[config.RETURN_RATE]
         # RoE.
@@ -201,7 +201,7 @@ class Backtest(object):
         # Beta max drawdown.
         beta_mdd = ((beta.cumsum() - beta.cumsum().cummax()) / (1 + beta.cumsum().cummax())).min()
         # Result.
-        result_metric = pd.DataFrame(index=pd.MultiIndex.from_product([['Alpha', 'Beta'], ['RoE', 'Sharpe', 'AnR', 'MDD']]),
+        result_metric = pd.DataFrame(index=pd.MultiIndex.from_product([['Strategy', 'Beta'], ['RoE', 'Sharpe', 'AnR', 'MDD']]),
                                      data=[roe,
                                            sharpe,
                                            annualized_return,
@@ -211,4 +211,6 @@ class Backtest(object):
                                            annualized_beta,
                                            beta_mdd],
                                      columns=['Indicator'])
+        if verbose:
+            self.logger.warning('Performance metric:\n{}'.format(result_metric))
         return result_metric
