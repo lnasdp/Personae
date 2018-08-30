@@ -78,7 +78,7 @@ class TuShareDataSource(BaseDataSource):
         cache_data_path = os.path.join(config.CACHE_DIR, '{}.pkl'.format(cache_data_name))
         self.logger.info('Cache data name is {}'.format(cache_data_name))
         if not os.path.exists(cache_data_path):
-            self.logger.warning('Cache data not exists, start crawling and saving cache.')
+            self.logger.warning('Cache data not exists, read raw data.')
             # If cache data not exist, crawl it.
             raw_df = self.read_raw_data()
             self.origin_df = self.save_origin_data(raw_df, cache_data_name)

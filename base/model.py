@@ -1,7 +1,9 @@
 # coding=utf-8
 
 import tensorflow as tf
+import numpy as np
 import shutil
+import math
 import os
 
 import config
@@ -18,6 +20,17 @@ class BaseModel(object):
         self.x_space = x_space
         self.y_space = y_space
         self.train_steps = 0
+        # 1.1 Input.
+        self.x_input = None
+        self.y_input = None
+        # 1.2. Output.
+        self.y_predict = None
+        # 1.3. Loss func and Optimizer.
+        self.loss_func = None
+        self.optimizer = None
+        # 1.4. Parameters.
+        self.t_dropout_keep_prob = None
+        self.t_is_training = None
         # 2. Training related.
         self._init_options(options)
         # 3. Saving related.
@@ -202,3 +215,70 @@ class BaseSLModel(BaseModel):
     def __init__(self, model_name, x_space, y_space, **options):
         super(BaseSLModel, self).__init__(model_name, x_space, y_space, **options)
 
+    def train(self, x_train, y_train, x_validate, y_validate):
+        # 1. Last evaluate loss for early stop.
+        loss_evaluate_min, loss_evaluate_min_step = np.inf, 0
+        # 2. Train loop.
+        for train_step in range(self.train_steps_limit):
+            # 2.1. Get data size.
+            data_size = len(x_train)
+            # 2.2. Get mini batch.
+            indices = np.random.choice(data_size, size=self.batch_size_train)
+            x_batch = x_train[indices]
+            y_batch = y_train[indices]
+            # 2.3. Train op.
+            ops = [self.loss_func, self.optimizer]
+            if self.train_steps % self.train_save_steps == 0:
+                ops.append(self.summary_merge_all_op)
+            # 2.4. Train.
+            results = self.session.run(ops, {
+                self.x_input: x_batch,
+                self.y_input: y_batch,
+                self.t_dropout_keep_prob: self.dropout_prob,
+                self.t_is_training: True
+            })
+            loss_train = results[0]
+            # 2.5. Add summary & Save model & Validation & Early-stop.
+            if self.train_steps % self.train_save_steps == 0:
+                # 2.5.1 Save summary.
+                self.summary_writer.add_summary(results[-1], global_step=self.train_steps)
+                # 2.5.2 Evaluate loss.
+                loss_evaluate = self.evaluate(x_validate, y_validate)
+                self.logger.warning('Steps: {0} | Train loss: {1:.8f} | Validate Loss: {2:.8f}'.format(self.train_steps,
+                                                                                                       loss_train,
+                                                                                                       loss_evaluate))
+                if loss_evaluate < loss_evaluate_min:
+                    # 2.5.3 Save model & graph.
+                    self.save(need_save_graph=True)
+                    # 2.5.4 Update min evaluate loss.
+                    loss_evaluate_min = loss_evaluate
+                    # 2.5.5 Update min evaluate loss step.
+                    loss_evaluate_min_step = train_step
+                else:
+                    if train_step - loss_evaluate_min_step >= self.train_save_steps:
+                        self.logger.warning('Validate loss does not decrease for {} steps, early stop.'.format(self.train_save_steps))
+                        break
+
+            # 6. Train steps ++.
+            self.train_steps += 1
+
+    def predict(self, x):
+        y_predict = self.session.run(self.y_predict, {self.x_input: x})
+        return y_predict
+
+    def evaluate(self, x_input, y_input):
+        loss = []
+        # 1. Get data count.
+        data_count = len(x_input)
+        # 2. Calculate batch count.
+        batch_count = int(math.ceil(float(data_count) / self.batch_size_evaluate))
+        # 3. Evaluate.
+        for batch_index in range(batch_count):
+            l_bound, r_bound = batch_index * self.batch_size_evaluate, (batch_index + 1) * self.batch_size_evaluate
+            _predict, _loss = self.session.run([self.y_predict, self.loss_func], {
+                self.x_input: x_input[l_bound: r_bound],
+                self.y_input: y_input[l_bound: r_bound]
+            })
+            loss.append(_loss)
+        loss = np.array(loss).mean()
+        return loss
