@@ -220,7 +220,7 @@ class BaseSLModel(BaseModel):
         loss_evaluate_min, loss_evaluate_min_step = np.inf, 0
         # 2. Train loop.
         for train_step in range(self.train_steps_limit):
-            # 2.1. Get data size.
+            # 2.1. Get data_handler size.
             data_size = len(x_train)
             # 2.2. Get mini batch.
             indices = np.random.choice(data_size, size=self.batch_size_train)
@@ -268,7 +268,7 @@ class BaseSLModel(BaseModel):
 
     def evaluate(self, x_input, y_input):
         loss = []
-        # 1. Get data count.
+        # 1. Get data_handler count.
         data_count = len(x_input)
         # 2. Calculate batch count.
         batch_count = int(math.ceil(float(data_count) / self.batch_size_evaluate))

@@ -15,7 +15,7 @@ class SampleStrategy(BaseStrategy):
 
     def handle_bar(self, bar_df, date):
         self.times += 1
-        # bar_positions_series = pd.Series(index=bar_df.index, data=1000 if self.times % 2 == 0 else -100)
+        # bar_positions_series = pd.Series(index=bar_df.index, data_handler=1000 if self.times % 2 == 0 else -100)
         bar_positions_series = pd.Series(index=bar_df.index, data=np.random.random_integers(-1000, 1000))
         return bar_positions_series
 

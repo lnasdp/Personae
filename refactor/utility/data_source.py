@@ -69,26 +69,26 @@ class TuShareDataSource(BaseDataSource):
         self.instruments = config.DEFAULT_INSTRUMENTS
 
     def _load_origin_data(self):
-        self.logger.info('Start load origin data.')
+        self.logger.info('Start load origin data_handler.')
         # Get md5 object.
         md5 = hashlib.md5()
         md5.update(''.join(self.instruments).encode('utf-8'))
-        # Get cache data name.
+        # Get cache data_handler name.
         cache_data_name = md5.hexdigest()
         cache_data_path = os.path.join(config.CACHE_DIR, '{}.pkl'.format(cache_data_name))
-        self.logger.info('Cache data name is {}'.format(cache_data_name))
+        self.logger.info('Cache data_handler name is {}'.format(cache_data_name))
         if not os.path.exists(cache_data_path):
-            self.logger.warning('Cache data not exists, read raw data.')
-            # If cache data not exist, crawl it.
+            self.logger.warning('Cache data_handler not exists, read raw data_handler.')
+            # If cache data_handler not exist, crawl it.
             raw_df = self.read_raw_data()
             self.origin_df = self.save_origin_data(raw_df, cache_data_name)
         else:
-            self.logger.info('Cache data exists, read from cache.')
+            self.logger.info('Cache data_handler exists, read from cache.')
             self.origin_df = pd.read_pickle(cache_data_path)
             self.logger.info('Finished reading from cache.')
 
     def read_raw_data(self):
-        self.logger.warning('Start reading raw data.')
+        self.logger.warning('Start reading raw data_handler.')
         TimeInspector.set_time_mark()
         # Concat and cache.
         instrument_frames = []
@@ -103,20 +103,20 @@ class TuShareDataSource(BaseDataSource):
         raw_df = pd.concat(instrument_frames)  # type: pd.DataFrame
         raw_df = raw_df.rename(columns={'date': 'datetime', 'code': 'instrument'})
         raw_df = raw_df.set_index(['instrument', 'datetime'])
-        self.logger.warning('Finished reading raw data, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+        self.logger.warning('Finished reading raw data_handler, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
         return raw_df
 
     def save_origin_data(self, raw_df, cache_data_name):
-        self.logger.warning('Start save origin data.')
+        self.logger.warning('Start save origin data_handler.')
         TimeInspector.set_time_mark()
-        # Cache data path
+        # Cache data_handler path
         if not os.path.exists(config.CACHE_DIR):
             os.makedirs(config.CACHE_DIR)
         raw_df = raw_df.sort_index(level=['instrument', 'datetime'])
         # Calculate factors.
         origin_df = self.calculate_factors(raw_df)
         origin_df.to_pickle(os.path.join(config.CACHE_DIR, '{}.pkl'.format(cache_data_name)))
-        self.logger.warning('Finished saving cache data, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
+        self.logger.warning('Finished saving cache data_handler, time cost: {0:.3f}'.format(TimeInspector.get_cost_time()))
         return origin_df
 
     def calculate_factors(self, origin_df):

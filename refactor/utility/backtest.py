@@ -26,7 +26,7 @@ class Backtest(object):
         self.start_date = start_date
         self.end_date = end_date
 
-        # 2. Data source and data related property.
+        # 2. Data source and data_handler related property.
         self.data_source = data_source
         self.features_df = self.data_source.features_df.loc(axis=0)[:, self.start_date: self.end_date]
         self.benchmark = bench_mark

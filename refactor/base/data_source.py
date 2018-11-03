@@ -54,7 +54,7 @@ class BaseDataSource(object):
             self.need_normalize_data = options[config.KEY_NEED_NORMALIZE_DATA]
         except KeyError:
             self.need_normalize_data = True
-        # 5. Process origin data.
+        # 5. Process origin data_handler.
         self.process_origin_data()
 
     @abstractmethod
