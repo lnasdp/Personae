@@ -163,6 +163,9 @@ class BaseDataHandler(object):
 
 class PredictorDataHandler(BaseDataHandler):
 
+    def __init__(self, **kwargs):
+        super(PredictorDataHandler, self).__init__(**kwargs)
+
     def setup_raw_data(self):
         pass
 
@@ -173,7 +176,8 @@ class PredictorDataHandler(BaseDataHandler):
         pass
 
     def setup_label(self):
-        pass
+        self.label_name = 'ALPHA'
+        self.label_names = ['ALPHA']
 
     def setup_feature_names(self):
         pass
