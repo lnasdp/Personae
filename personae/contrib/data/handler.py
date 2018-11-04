@@ -31,6 +31,8 @@ class BaseDataHandler(object):
         self.w_train = None
         self.w_validation = None
 
+        self.raw_data_path = kwargs.get('raw_data_path')
+
         self.train_start_date = kwargs.get('train_start_date', '2016-01-01')
         self.train_end_date = kwargs.get('train_end_date', '2016-12-31')
 
@@ -163,31 +165,32 @@ class BaseDataHandler(object):
 
 class PredictorDataHandler(BaseDataHandler):
 
-    def __init__(self, **kwargs):
-        super(PredictorDataHandler, self).__init__(**kwargs)
-        self.raw_data_path = kwargs.get('raw_data_path')
-
     def setup_raw_data(self):
         self.raw_df = pd.read_pickle(self.raw_data_path)
+        self.raw_df = self.raw_df.loc(axis=0)[:, '2005-01-01':]
 
     def setup_processed_data(self):
-        # 1.a
-        raw_df = self.raw_df  # type: pd.DataFrame
-        raw_df = raw_df.loc(axis=0)[:, '2005-01-01':]
+        # 1. Date slice.
+        processed_df = self.raw_df.copy()  # type: pd.DataFrame
 
+        # 2. Drop nan labels.
+        profiler.TimeInspector.set_time_mark()
+        processed_df = processed_df[~processed_df.loc(axis=1)['return'].isnull()]
+        profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
+
+        self.processed_df = processed_df
 
     def setup_label_names(self):
-        pass
+        self.label_name = 'return'
+        self.label_names = ['return', 'alpha']
 
     def setup_label(self):
-        self.label_name = 'ALPHA'
-        self.label_names = ['ALPHA']
+        profiler.TimeInspector.set_time_mark()
+        self.processed_df['alpha'] = self.processed_df['return'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
+        profiler.TimeInspector.log_cost_time('Finished calculating new label alpha.')
 
     def setup_feature_names(self):
-        pass
-
-    def setup_feature(self):
-        pass
+        self.feature_names = list(set(self.processed_df.columns) - set(self.label_names))
 
     def setup_static_data(self):
         split_data = self.get_split_data_by_dates(self.train_start_date,
@@ -247,3 +250,8 @@ class PredictorDataHandler(BaseDataHandler):
         y_test = df_test[self.label_name].values * 100
 
         return x_train, y_train, x_validate, y_validate, x_test, y_test
+
+
+if __name__ == '__main__':
+    h = PredictorDataHandler(raw_data_path=r'D:\Users\v-shuyw\data\ycz\trading-data.20181102\stock_sample\all_market.pkl')
+    print(h.x_train)
