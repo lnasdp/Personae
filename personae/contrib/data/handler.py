@@ -165,12 +165,16 @@ class PredictorDataHandler(BaseDataHandler):
 
     def __init__(self, **kwargs):
         super(PredictorDataHandler, self).__init__(**kwargs)
+        self.raw_data_path = kwargs.get('raw_data_path')
 
     def setup_raw_data(self):
-        pass
+        self.raw_df = pd.read_pickle(self.raw_data_path)
 
     def setup_processed_data(self):
-        pass
+        # 1.a
+        raw_df = self.raw_df  # type: pd.DataFrame
+        raw_df = raw_df.loc(axis=0)[:, '2005-01-01':]
+
 
     def setup_label_names(self):
         pass
