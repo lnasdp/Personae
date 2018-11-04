@@ -9,10 +9,17 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 
 from personae.utility import profiler
+from personae.utility import factor
+
+factor_calculator_args_pairs = factor.get_factor_calculator_args_pairs()
 
 
-def load_df(csv_path):
+def load_raw_df(csv_path):
+    # 1. Load raw csv.
     df = pd.read_csv(csv_path, parse_dates=['date'], infer_datetime_format=True)
+    # 2. Calculate factors.
+    for factor_name, calculator, arg in factor_calculator_args_pairs:
+        df[factor_name] = calculator(df, *arg)
     return df
 
 
@@ -32,7 +39,7 @@ if __name__ == '__main__':
 
     profiler.TimeInspector.set_time_mark()
     with ProcessPoolExecutor(max_workers=16) as ex:
-        res_iter = ex.map(load_df, csv_paths)
+        res_iter = ex.map(load_raw_df, csv_paths)
     profiler.TimeInspector.log_cost_time('Finished loading all stock csv.')
 
     profiler.TimeInspector.set_time_mark()
