@@ -35,10 +35,10 @@ def concat_raw_df(raw_data_dir, cache_data_dir, data_type='stock'):
     cache_data_path = os.path.join(cache_data_dir, '{}.pkl'.format(data_type))
     df = pd.concat(dfs)  # type: pd.DataFrame
     df.to_pickle(cache_data_path)
-    TimeInspector.log_cost_time('Finished saving {} df to {}.'.format(data_type, cache_data_path))
+    TimeInspector.log_cost_time('Finished saving raw {} df to {}.'.format(data_type, cache_data_path))
 
 
-def process_raw_df(cache_data_dir, data_type='stock'):
+def process_raw_df(cache_data_dir, processed_dir, data_type='stock'):
     # 1. Load raw df.
     df = pd.read_pickle(os.path.join(cache_data_dir, '{}.pkl'.format(data_type)))  # type: pd.DataFrame
 
@@ -56,7 +56,11 @@ def process_raw_df(cache_data_dir, data_type='stock'):
     df = df.set_index(['code', 'date'])
     df = df.sort_index(level=[0, 1])
 
-    print(df)
+    processed_data_path = os.path.join(processed_dir, '{}.pkl'.format(data_type))
+
+    TimeInspector.set_time_mark()
+    df.to_pickle(processed_data_path)
+    TimeInspector.log_cost_time('Finished saving processed {} df to {}'.format(data_type, processed_data_path))
 
 
 args_parser = argparse.ArgumentParser(prog='data_preprocessor')
