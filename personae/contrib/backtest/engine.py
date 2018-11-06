@@ -10,7 +10,13 @@ from personae.utility import logger
 
 class Engine(object):
 
-    def __init__(self, data_handler: BaseDataHandler, start_date, end_date):
+    def __init__(self,
+                 data_handler: BaseDataHandler,
+                 start_date,
+                 end_date,
+                 cash=1.e8,
+                 slippage=0.05,
+                 benchmark='000905'):
 
         self.data_handler = data_handler
 
