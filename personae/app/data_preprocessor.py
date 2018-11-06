@@ -13,6 +13,7 @@ from concurrent.futures import ProcessPoolExecutor
 
 def _load_raw_df(csv_path):
     df = pd.read_csv(csv_path)
+    df = df.rename(columns={'index_code': 'code'})
     return df
 
 
@@ -90,4 +91,5 @@ if __name__ == '__main__':
     concat_raw_df(args_parsed.raw_data_dir, args_parsed.cache_data_dir, data_type='stock')
     concat_raw_df(args_parsed.raw_data_dir, args_parsed.cache_data_dir, data_type='index')
 
-    process_raw_df(args_parsed.cache_data_dir, data_type='stock')
+    process_raw_df(args_parsed.cache_data_dir, args_parsed.processed_data_dir, data_type='stock')
+    process_raw_df(args_parsed.cache_data_dir, args_parsed.processed_data_dir, data_type='index')
