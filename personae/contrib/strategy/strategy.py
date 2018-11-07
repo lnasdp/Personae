@@ -27,7 +27,7 @@ class SampleStrategy(BaseStrategy):
         pass
 
     def handle_bar(self, bar):
-        return pd.Series(index=bar.index, data=np.random.randint(0, 10, size=(len(bar.index, ))))
+        return pd.Series(index=bar.index, data=np.random.randint(-10, 1, size=(len(bar.index, ))))
 
     def after_trading(self):
         pass

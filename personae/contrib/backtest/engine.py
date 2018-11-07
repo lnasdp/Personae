@@ -19,8 +19,8 @@ class BaseEngine(object):
                  start_date='2005-01-01',
                  end_date='2018-11-01',
                  cash=1.e8,
-                 charge=0.003,
-                 slippage=0.05,
+                 charge=0.002,
+                 slippage=0.01,
                  benchmark='sh000905'):
 
         # 1. Data.
@@ -94,21 +94,36 @@ class BaseEngine(object):
 
             self.strategy.before_trading()
 
+            # 1. Get cur stock bar.
             cur_stock_bar = self.stock_df.loc(axis=0)[:, cur_date]
-            cur_stock_close = cur_stock_bar['CLOSE']
+            cur_bar_return = cur_stock_bar['RETURN_SHIFT_0'].reset_index('DATE', drop=True)
+            cur_stock_close = cur_stock_bar['CLOSE'].reset_index('DATE', drop=True)
 
-            cur_positions = self.strategy.handle_bar(cur_stock_bar)
+            # 2. Let strategy handle bar.
+            tar_positions = self.strategy.handle_bar(cur_stock_bar)
 
-            last_positions = self.positions.loc(axis=0)[:, last_date]
+            # 3. Update tar positions.
+            self.positions.loc(axis=0)[:, cur_date] = tar_positions
 
-            positions_diff = cur_positions.reset_index('DATE') - last_positions.reset_index('CODE')
+            # 4. Get cur positions.
+            cur_positions = self.positions.loc(axis=0)[:, last_date]
 
-            self.positions.loc(axis=0)[:, cur_date] = cur_positions
+            # 5. Calculate positions diff.
+            tar_positions = tar_positions.reset_index('DATE', drop=True)
+            cur_positions = cur_positions.reset_index('DATE', drop=True)
+            positions_diff = tar_positions - cur_positions  # type: pd.Series
+            positions_diff = positions_diff.fillna(value=0)
 
-            profit = np.sum(last_positions * cur_stock_bar['RETURN_SHIFT_0'])
-            loss = np.sum(positions_diff * self.slippage) + np.sum(positions_diff * cur_stock_close * self.charge)
+            # 6. Calculate profit.
+            profit = np.sum(cur_positions * cur_bar_return)
 
-            cash = cash + profit - loss
+            # 7. Calculate loss.
+            loss_slippage = np.sum(positions_diff.abs() * self.slippage)
+            loss_charge = np.sum(positions_diff.abs() * cur_stock_close * self.charge)
+            loss = -(loss_slippage + loss_charge)
+
+            cash += profit
+            cash += loss
 
             self.logger.warning('p is {}, l is {}, cash is {}'.format(profit, loss, cash))
 
@@ -136,5 +151,5 @@ class PredictorEngine(BaseEngine):
 
 if __name__ == '__main__':
     from personae.contrib.strategy.strategy import SampleStrategy
-    e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed', SampleStrategy())
+    e = PredictorEngine(r'/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed', SampleStrategy(), cash=10)
     e.run()
