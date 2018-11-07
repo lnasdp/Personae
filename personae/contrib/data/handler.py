@@ -2,8 +2,8 @@
 
 import pandas as pd
 
-from personae.utility import logger
-from personae.utility import profiler
+from personae.contrib.data.loader import PredictorDataLoader
+from personae.utility import profiler, logger
 
 from abc import abstractmethod
 
@@ -31,7 +31,7 @@ class BaseDataHandler(object):
         self.w_train = None
         self.w_validation = None
 
-        self.raw_data_path = kwargs.get('raw_data_path')
+        self.raw_data_dir = kwargs.get('raw_data_dir')
 
         self.train_start_date = kwargs.get('train_start_date', '2016-01-01')
         self.train_end_date = kwargs.get('train_end_date', '2016-12-31')
@@ -166,8 +166,11 @@ class BaseDataHandler(object):
 class PredictorDataHandler(BaseDataHandler):
 
     def setup_raw_data(self):
-        self.raw_df = pd.read_pickle(self.raw_data_path)
-        self.raw_df = self.raw_df.loc(axis=0)[:, '2005-01-01':]
+        # 1. Here for data handler, the processed data for loader is raw data.
+        loader = PredictorDataLoader(self.raw_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
+
+        # 2. Load raw df.
+        self.raw_df = loader.load_data()
 
     def setup_processed_data(self):
         # 1. Date slice.
@@ -175,18 +178,18 @@ class PredictorDataHandler(BaseDataHandler):
 
         # 2. Drop nan labels.
         profiler.TimeInspector.set_time_mark()
-        processed_df = processed_df[~processed_df.loc(axis=1)['return'].isnull()]
+        processed_df = processed_df[~processed_df.loc(axis=1)['RETURN'].isnull()]
         profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
 
         self.processed_df = processed_df
 
     def setup_label_names(self):
-        self.label_name = 'return'
-        self.label_names = ['return', 'alpha']
+        self.label_name = 'RETURN'
+        self.label_names = ['RETURN', 'ALPHA']
 
     def setup_label(self):
         profiler.TimeInspector.set_time_mark()
-        self.processed_df['alpha'] = self.processed_df['return'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
+        self.processed_df['ALPHA'] = self.processed_df['RETURN'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
         profiler.TimeInspector.log_cost_time('Finished calculating new label alpha.')
 
     def setup_feature_names(self):
@@ -253,5 +256,5 @@ class PredictorDataHandler(BaseDataHandler):
 
 
 if __name__ == '__main__':
-    h = PredictorDataHandler(raw_data_path=r'D:\Users\v-shuyw\data\ycz\trading-data.20181102\stock_sample\all_market.pkl')
+    h = PredictorDataHandler(raw_data_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\processed')
     print(h.x_train)

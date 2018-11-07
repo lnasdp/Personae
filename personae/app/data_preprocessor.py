@@ -12,13 +12,13 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 def _load_raw_df(csv_path):
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, parse_dates=['date'], infer_datetime_format=True)
     df = df.rename(columns={'index_code': 'code'})
+    df.columns = map(str.upper, df.columns)
     return df
 
 
-def concat_raw_df(raw_data_dir, cache_data_dir, data_type='stock'):
-
+def merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock'):
     # 1. Get csv dir.
     csv_dir = os.path.join(raw_data_dir, data_type)
 
@@ -33,28 +33,28 @@ def concat_raw_df(raw_data_dir, cache_data_dir, data_type='stock'):
 
     # 4. Concat and cache df.
     TimeInspector.set_time_mark()
-    cache_data_path = os.path.join(cache_data_dir, '{}.pkl'.format(data_type))
+    cache_data_path = os.path.join(merged_data_dir, '{}.pkl'.format(data_type))
     df = pd.concat(dfs)  # type: pd.DataFrame
     df.to_pickle(cache_data_path)
-    TimeInspector.log_cost_time('Finished saving raw {} df to {}.'.format(data_type, cache_data_path))
+    TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, cache_data_path))
 
 
-def process_raw_df(cache_data_dir, processed_dir, data_type='stock'):
-    # 1. Load raw df.
+def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
+    # 1. Load merged df.
     df = pd.read_pickle(os.path.join(cache_data_dir, '{}.pkl'.format(data_type)))  # type: pd.DataFrame
 
     # 2. Remove unused columns.
-    columns = list(set(df.columns) - {'report_type', 'report_date', 'adjust_price_f'})
+    columns = list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'})
     columns.sort()
     df = df[columns]
 
     # 2. Calculate factors.
     TimeInspector.set_time_mark()
-    for factor_name, calculator, args in factor.name_calculator_args_pairs:
+    for factor_name, calculator, args in factor.name_func_args_pairs:
         df[factor_name] = calculator(df, *args)
     TimeInspector.log_cost_time('Finished calculating factors')
 
-    df = df.set_index(['code', 'date'])
+    df = df.set_index(['CODE', 'DATE'])
     df = df.sort_index(level=[0, 1])
 
     processed_data_path = os.path.join(processed_dir, '{}.pkl'.format(data_type))
@@ -77,19 +77,19 @@ args_parser.add_argument('-p',
                          required=True,
                          help='Indicate where to save preprocessed data.')
 
-args_parser.add_argument('-c',
-                         '--cache_data_dir',
+args_parser.add_argument('-m',
+                         '--merged_data_dir',
                          type=str,
                          required=True,
-                         help='Indicate where to save cache data.')
+                         help='Indicate where to save merged data.')
 
 
 if __name__ == '__main__':
 
     args_parsed = args_parser.parse_args()
 
-    concat_raw_df(args_parsed.raw_data_dir, args_parsed.cache_data_dir, data_type='stock')
-    concat_raw_df(args_parsed.raw_data_dir, args_parsed.cache_data_dir, data_type='index')
+    merge_raw_df(args_parsed.raw_data_dir, args_parsed.merged_data_dir, data_type='stock')
+    merge_raw_df(args_parsed.raw_data_dir, args_parsed.merged_data_dir, data_type='index')
 
-    process_raw_df(args_parsed.cache_data_dir, args_parsed.processed_data_dir, data_type='stock')
-    process_raw_df(args_parsed.cache_data_dir, args_parsed.processed_data_dir, data_type='index')
+    process_merged_df(args_parsed.merged_data_dir, args_parsed.processed_data_dir, data_type='stock')
+    process_merged_df(args_parsed.merged_data_dir, args_parsed.processed_data_dir, data_type='index')

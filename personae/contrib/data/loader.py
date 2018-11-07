@@ -1,8 +1,11 @@
 # coding=utf-8
 
 import pandas as pd
+import os
 
 from abc import abstractmethod
+
+from personae.utility.profiler import TimeInspector
 
 
 class BaseDataLoader(object):
@@ -11,16 +14,33 @@ class BaseDataLoader(object):
         pass
 
     @abstractmethod
-    def load_raw_data(self):
+    def load_data(self, **kwargs):
         pass
 
 
 class PredictorDataLoader(BaseDataLoader):
 
-    def __init__(self, **kwargs):
+    def __init__(self, data_dir, **kwargs):
         super(PredictorDataLoader, self).__init__(**kwargs)
-        self.raw_df = None
-        self.raw_data_path = kwargs.get('raw_data_path')
+        # 2. data dir
+        self.data_dir = data_dir
 
-    def load_raw_data(self):
-        self.raw_df = pd.read_pickle(self.raw_data_path)
+        # 3. codes.
+        self.codes = kwargs.get('codes', 'all')
+
+        # 4. Dates.
+        self.start_date = kwargs.get('start_date', '2005-01-01')
+        self.end_date = kwargs.get('end_date', '2018-11-01')
+
+    def load_data(self, data_type='stock'):
+        TimeInspector.set_time_mark()
+        # 1. Load pkl.
+        df = pd.read_pickle(os.path.join(self.data_dir, '{}.pkl'.format(data_type)))
+        # 2. Slice.
+        if self.codes == 'all':
+            df = df.loc(axis=0)[:, self.start_date: self.end_date]
+        else:
+            df = df.loc(axis=0)[self.codes, self.start_date: self.end_date]
+        TimeInspector.log_cost_time('Finished loading data df.')
+        return df
+
