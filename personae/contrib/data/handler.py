@@ -178,18 +178,18 @@ class PredictorDataHandler(BaseDataHandler):
 
         # 2. Drop nan labels.
         profiler.TimeInspector.set_time_mark()
-        processed_df = processed_df[~processed_df.loc(axis=1)['RETURN'].isnull()]
+        processed_df = processed_df[~processed_df.loc(axis=1)['LABEL_0'].isnull()]
         profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
 
         self.processed_df = processed_df
 
     def setup_label_names(self):
-        self.label_name = 'RETURN'
-        self.label_names = ['RETURN', 'ALPHA']
+        self.label_name = 'LABEL_0'
+        self.label_names = ['LABEL_0', 'ALPHA']
 
     def setup_label(self):
         profiler.TimeInspector.set_time_mark()
-        self.processed_df['ALPHA'] = self.processed_df['RETURN'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
+        self.processed_df['ALPHA'] = self.processed_df['LABEL_0'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
         profiler.TimeInspector.log_cost_time('Finished calculating new label alpha.')
 
     def setup_feature_names(self):

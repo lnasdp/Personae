@@ -3,8 +3,8 @@
 import pandas as pd
 
 
-def returns(df: pd.DataFrame, key):
-    return df[key] / df.shift(periods=1)[key] - 1
+def returns(df: pd.DataFrame, key, shift_window=0):
+    return df.shift(periods=shift_window)[key] / df.shift(periods=shift_window+1)[key] - 1
 
 
 def diff(df: pd.DataFrame, key, window):
@@ -39,7 +39,8 @@ def rolling_ic(df: pd.DataFrame, key_a, key_b, window):
 name_func_args_pairs, windows = [], [5, 10, 30, 60, 120]
 
 # 1. return.
-name_func_args_pairs.append(('RETURN', returns, ['CLOSE']))
+name_func_args_pairs.append(('RETURN_SHIFT_0', returns, ['CLOSE', 0]))
+name_func_args_pairs.append(('LABEL_0', returns, ['CLOSE', -2]))
 
 # 2. close_volume_rolling_ic_window.
 for w in windows:

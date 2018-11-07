@@ -1,4 +1,7 @@
-# coding=uf-8
+# coding=utf-8
+
+import numpy as np
+import pandas as pd
 
 from abc import abstractmethod
 
@@ -14,5 +17,17 @@ class BaseStrategy(object):
         pass
 
     @abstractmethod
+    def after_trading(self):
+        pass
+
+
+class SampleStrategy(BaseStrategy):
+
+    def before_trading(self):
+        pass
+
+    def handle_bar(self, bar):
+        return pd.Series(index=bar.index, data=np.random.randint(0, 10, size=(len(bar.index, ))))
+
     def after_trading(self):
         pass
