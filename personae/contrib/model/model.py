@@ -1,6 +1,8 @@
 # coding=utf-8
 
 import tensorflow as tf
+import lightgbm as gbm
+import numpy as np
 
 from abc import abstractmethod
 
@@ -27,6 +29,60 @@ class BaseModel(object):
         pass
 
     @abstractmethod
+    def load(self, **kwargs):
+        pass
+
+
+class BaseLightGBM(BaseModel):
+
+    def __init__(self, **kwargs):
+        super(BaseLightGBM, self).__init__(**kwargs)
+        # Model.
+        self.model = None
+
+        # Boost round.
+        self.boost_round = kwargs.get('boost_round', 1000)
+
+        # Early stop round.
+        self.early_stop_round = kwargs.get('early_stop_round', 50)
+
+        # Parameters.
+        self.parameters = kwargs
+
+    def fit(self,
+            x_train,
+            y_train,
+            x_validation,
+            y_validation,
+            w_train=None,
+            w_validation=None):
+
+        # 1. Prepare train set.
+        train_set = gbm.Dataset(data=x_train, label=y_train, weight=w_train)
+
+        # 2. Prepare validation set.
+        validation_set = gbm.Dataset(data=x_validation, label=y_validation, weight=w_validation)
+
+        # 3. Prepare parameters.
+        parameters = self.parameters.copy()
+
+        # 4. Evaluation result.
+        eval_result = dict()
+
+        # 5. Train.
+        self.model = gbm.train(params=parameters,
+                               train_set=train_set,
+                               valid_sets=validation_set,
+                               evals_result=eval_result,
+                               num_boost_round=self.boost_round,
+                               early_stopping_rounds=self.early_stop_round,)
+
+    def predict(self, **kwargs):
+        pass
+
+    def save(self, **kwargs):
+        pass
+
     def load(self, **kwargs):
         pass
 
