@@ -183,6 +183,6 @@ class PredictorEngine(BaseEngine):
 
 
 if __name__ == '__main__':
-    from personae.contrib.strategy.strategy import SampleStrategy
-    e = PredictorEngine(r'/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed', SampleStrategy(), cash=100000)
+    from personae.contrib.strategy.strategy import RandomStrategy, SimpleReturnStrategy
+    e = PredictorEngine(r'/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed', SimpleReturnStrategy(), cash=100000)
     e.run()

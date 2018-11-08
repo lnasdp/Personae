@@ -4,8 +4,6 @@ import tensorflow as tf
 
 from abc import abstractmethod
 
-from personae.utility.log import TimeInspector
-
 
 class BaseModel(object):
 
