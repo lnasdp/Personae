@@ -27,7 +27,10 @@ class SampleStrategy(BaseStrategy):
         pass
 
     def handle_bar(self, bar):
-        return pd.Series(index=bar.index, data=np.random.randint(-10, 1, size=(len(bar.index, ))))
+
+        amount = [1000 if np.random.randint(0, 10) % 2 == 0 else -1000] * len(bar.index)
+
+        return pd.Series(index=bar.index, data=amount)
 
     def after_trading(self):
         pass

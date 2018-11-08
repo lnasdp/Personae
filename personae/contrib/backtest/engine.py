@@ -62,10 +62,7 @@ class BaseEngine(object):
         self.available_dates = self.bench_df.index.get_level_values(level=1).unique().tolist()
         self.iter_dates = iter(self.available_dates)
 
-        # 8. Backtest.
-        self.positions = pd.Series(index=self.stock_df.index, data=0)
-
-        # 9. Logger.
+        # 8. Logger.
         self.logger = logger.get_logger('BACKTEST')
 
     @abstractmethod
@@ -90,23 +87,34 @@ class BaseEngine(object):
         cur_date = next(self.iter_dates)
         last_date = cur_date
 
-        while True:
+        # 3. Positions.
+        # positions_df = pd.DataFrame(index=self.stock_df.index, columns=['AMOUNT'], data=0)
+        positions_df = pd.Series(index=self.stock_df.index, data=0)
+
+        while cur_date:
 
             self.strategy.before_trading()
 
             # 1. Get cur stock bar.
-            cur_stock_bar = self.stock_df.loc(axis=0)[:, cur_date]
+
+            try:
+                cur_stock_bar = self.stock_df.loc(axis=0)[:, cur_date]
+            except KeyError:
+                last_date, cur_date = cur_date, self.get_next_date()
+                self.logger.warning('All stock cannot trade on: {}, continue.'.format(cur_date))
+                continue
+
             cur_bar_return = cur_stock_bar['RETURN_SHIFT_0'].reset_index('DATE', drop=True)
             cur_stock_close = cur_stock_bar['CLOSE'].reset_index('DATE', drop=True)
 
             # 2. Let strategy handle bar.
             tar_positions = self.strategy.handle_bar(cur_stock_bar)
 
-            # 3. Update tar positions.
-            self.positions.loc(axis=0)[:, cur_date] = tar_positions
+            # 3. Get cur positions.
+            cur_positions = positions_df.loc(axis=0)[:, last_date]
 
-            # 4. Get cur positions.
-            cur_positions = self.positions.loc(axis=0)[:, last_date]
+            # 4. Update tar positions.
+            positions_df.loc[:, cur_date] = tar_positions
 
             # 5. Calculate positions diff.
             tar_positions = tar_positions.reset_index('DATE', drop=True)
@@ -114,27 +122,46 @@ class BaseEngine(object):
             positions_diff = tar_positions - cur_positions  # type: pd.Series
             positions_diff = positions_diff.fillna(value=0)
 
-            # 6. Calculate profit.
+            # 6. Calculate holdings.
+            holdings = np.sum(tar_positions * cur_stock_close)
+
+            # 7. Calculate cost.
+            cost = np.sum(positions_diff * cur_stock_close)
+
+            # 7. Calculate profit.
             profit = np.sum(cur_positions * cur_bar_return)
 
-            # 7. Calculate loss.
+            # 8. Calculate loss.
             loss_slippage = np.sum(positions_diff.abs() * self.slippage)
             loss_charge = np.sum(positions_diff.abs() * cur_stock_close * self.charge)
             loss = -(loss_slippage + loss_charge)
 
             cash += profit
             cash += loss
+            cash -= cost
 
-            self.logger.warning('p is {}, l is {}, cash is {}'.format(profit, loss, cash))
+            # 9. Calculate RoE.
+            roe = (cash + holdings) / initial_cash
+
+            log_info = 'Date: {0} | ' \
+                       'Profit: {1:.3f} | ' \
+                       'Loss: {2:.3f} | ' \
+                       'Cost: {3:.3f} | ' \
+                       'Cash: {4:.3f} | ' \
+                       'Holdings: {5:.3f} | ' \
+                       'RoE: {6:.3f}'
+            self.logger.warning(log_info.format(cur_date, profit, loss, cost, cash, holdings, roe))
 
             self.strategy.after_trading()
 
-            last_date = cur_date
+            last_date, cur_date = cur_date, self.get_next_date()
 
-            try:
-                cur_date = next(self.iter_dates)
-            except StopIteration:
-                break
+    def get_next_date(self):
+        try:
+            cur_date = next(self.iter_dates)
+        except StopIteration:
+            cur_date = None
+        return cur_date
 
 
 class PredictorEngine(BaseEngine):
@@ -151,5 +178,5 @@ class PredictorEngine(BaseEngine):
 
 if __name__ == '__main__':
     from personae.contrib.strategy.strategy import SampleStrategy
-    e = PredictorEngine(r'/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed', SampleStrategy(), cash=10)
+    e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed', SampleStrategy(), cash=100000)
     e.run()
