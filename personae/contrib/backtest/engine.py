@@ -88,8 +88,10 @@ class BaseEngine(object):
         last_date = cur_date
 
         # 3. Positions.
-        # positions_df = pd.DataFrame(index=self.stock_df.index, columns=['AMOUNT'], data=0)
-        positions_df = pd.Series(index=self.stock_df.index, data=0)
+        index = pd.MultiIndex.from_product([self.stock_df.index.levels[0].tolist(),
+                                            self.bench_df.index.levels[1].tolist()],
+                                           names=['CODE', 'DATE'])
+        positions_df = pd.Series(index=index, data=0).loc[:, self.start_date: self.end_date]
 
         while cur_date:
 
@@ -100,7 +102,11 @@ class BaseEngine(object):
             try:
                 cur_stock_bar = self.stock_df.loc(axis=0)[:, cur_date]
             except KeyError:
+                # 1. Here, all stock cannot trade on this day, we should update positions.
+                positions_df.loc[:, cur_date] = positions_df.loc(axis=0)[:, last_date]
+                # 2. Update last date and current date.
                 last_date, cur_date = cur_date, self.get_next_date()
+                # 3. Log and continue.
                 self.logger.warning('All stock cannot trade on: {}, continue.'.format(cur_date))
                 continue
 
@@ -178,5 +184,5 @@ class PredictorEngine(BaseEngine):
 
 if __name__ == '__main__':
     from personae.contrib.strategy.strategy import SampleStrategy
-    e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed', SampleStrategy(), cash=100000)
+    e = PredictorEngine(r'/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed', SampleStrategy(), cash=100000)
     e.run()
