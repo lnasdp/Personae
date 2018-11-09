@@ -35,9 +35,9 @@ class PredictorDataLoader(BaseDataLoader):
         df = pd.read_pickle(os.path.join(self.data_dir, '{}.pkl'.format(data_type)))
         # 2. Slice.
         if codes == 'all':
-            df = df.loc(axis=0)[:, self.start_date: self.end_date]
+            df = df.loc(axis=0)[self.start_date: self.end_date, :]
         else:
-            df = df.loc(axis=0)[codes, self.start_date: self.end_date]
+            df = df.loc(axis=0)[self.start_date: self.end_date, codes]
         TimeInspector.log_cost_time('Finished loading data df.')
         # 3. Return.
         return df

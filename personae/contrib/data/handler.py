@@ -239,9 +239,9 @@ class PredictorDataHandler(BaseDataHandler):
                                 test_start_date,
                                 test_end_date):
 
-        df_train = self.processed_df.loc(axis=0)[:, train_start_date: train_end_date]  # type: pd.DataFrame
-        df_validate = self.processed_df.loc(axis=0)[:, validate_start_date: validate_end_date]  # type: pd.DataFrame
-        df_test = self.processed_df.loc(axis=0)[:, test_start_date: test_end_date]  # type: pd.DataFrame
+        df_train = self.processed_df.loc(axis=0)[train_start_date: train_end_date, :]  # type: pd.DataFrame
+        df_validate = self.processed_df.loc(axis=0)[validate_start_date: validate_end_date, :]  # type: pd.DataFrame
+        df_test = self.processed_df.loc(axis=0)[test_start_date: test_end_date, :]  # type: pd.DataFrame
 
         x_train = df_train[self.feature_names].values
         y_train = df_train[self.label_name].values * 100

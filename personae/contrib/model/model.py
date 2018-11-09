@@ -35,7 +35,7 @@ class BaseModel(object):
 
 class BaseLightGBM(BaseModel):
 
-    def __init__(self, **kwargs):
+    def __init__(self, loss_func='mse', **kwargs):
         super(BaseLightGBM, self).__init__(**kwargs)
         # Model.
         self.model = None
@@ -48,6 +48,7 @@ class BaseLightGBM(BaseModel):
 
         # Parameters.
         self.parameters = kwargs
+        self.parameters.update({'objective': loss_func})
 
     def fit(self,
             x_train,
@@ -58,10 +59,10 @@ class BaseLightGBM(BaseModel):
             w_validation=None):
 
         # 1. Prepare train set.
-        train_set = gbm.Dataset(data=x_train, label=y_train, weight=w_train)
+        train_set = gbm.Dataset(x_train, label=y_train, weight=w_train)
 
         # 2. Prepare validation set.
-        validation_set = gbm.Dataset(data=x_validation, label=y_validation, weight=w_validation)
+        validation_set = gbm.Dataset(x_validation, label=y_validation, weight=w_validation)
 
         # 3. Prepare parameters.
         parameters = self.parameters.copy()

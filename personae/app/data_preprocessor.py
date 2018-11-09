@@ -54,7 +54,7 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
         df[factor_name] = calculator(df, *args)
     TimeInspector.log_cost_time('Finished calculating factors')
 
-    df = df.set_index(['CODE', 'DATE'])
+    df = df.set_index(['DATE', 'CODE'])
     df = df.sort_index(level=[0, 1])
 
     processed_data_path = os.path.join(processed_dir, '{}.pkl'.format(data_type))

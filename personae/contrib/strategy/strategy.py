@@ -21,6 +21,19 @@ class BaseStrategy(object):
         pass
 
 
+class HoldStrategy(BaseStrategy):
+
+    def before_trading(self, **kwargs):
+        pass
+
+    def handle_bar(self, bar: pd.DataFrame):
+        amount = [100 ] * len(bar.index)
+        return pd.Series(index=bar.index, data=amount)
+
+    def after_trading(self, **kwargs):
+        pass
+
+
 class RandomStrategy(BaseStrategy):
 
     def before_trading(self, **kwargs):
