@@ -1,12 +1,12 @@
 # coding=utf-8
 
 from personae.contrib.data.handler import PredictorDataHandler
-from personae.contrib.model.model import LightGBM
+from personae.contrib.model.model import LightGBMModel
 
 
 data_handler = PredictorDataHandler(raw_data_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\processed')
 
-model = LightGBM(**{
+model = LightGBMModel(**{
     'num_threads': 4,
 })
 
