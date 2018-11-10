@@ -54,7 +54,7 @@ class BaseNNModel(BaseModel):
         # Session.
         self.session = kwargs.get('session', tf.Session())
 
-        # Input space.
+        # Input shape.
         self.x_space = x_space
         self.y_space = y_space
 
@@ -174,13 +174,11 @@ class BaseNNModel(BaseModel):
 class MLPModel(BaseNNModel):
 
     def __init__(self,
-                 x_space,
-                 y_space,
                  num_hidden_layers=3,
                  num_hidden_units=None,
                  loss_func='mse',
                  **kwargs):
-        super(MLPModel, self).__init__(x_space, y_space, **kwargs)
+        super(MLPModel, self).__init__(**kwargs)
 
         # Hidden units.
         if num_hidden_units is None:
@@ -204,7 +202,6 @@ class MLPModel(BaseNNModel):
                                     activation=tf.nn.leaky_relu,
                                     kernel_initializer=weight_initializer,
                                     name='dense_{}'.format(layer_index))
-
         # Predict tensor.
         self.y_predict = tf.layers.dense(inputs=dense,
                                          units=self.y_space,

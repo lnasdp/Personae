@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from sklearn.preprocessing import StandardScaler
+
 from personae.contrib.data.loader import PredictorDataLoader
 from personae.utility import profiler, logger
 
@@ -31,7 +33,11 @@ class BaseDataHandler(object):
         self.w_train = None
         self.w_validation = None
 
+        self.scaler = None
+
         self.raw_data_dir = kwargs.get('raw_data_dir')
+        self.drop_nan_columns = kwargs.get('drop_nan_columns', False)
+        self.normalize_data = kwargs.get('normalize_data', False)
 
         self.train_start_date = kwargs.get('train_start_date', '2016-01-01')
         self.train_end_date = kwargs.get('train_end_date', '2016-12-31')
@@ -181,6 +187,12 @@ class PredictorDataHandler(BaseDataHandler):
         processed_df = processed_df[~processed_df.loc(axis=1)['LABEL_0'].isnull()]
         profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
 
+        # 3. Drop nan columns if need.
+        if self.drop_nan_columns:
+            profiler.TimeInspector.set_time_mark()
+            processed_df = processed_df.dropna()
+            profiler.TimeInspector.log_cost_time('Finished dropping nan columns.')
+
         self.processed_df = processed_df
 
     def setup_label_names(self):
@@ -251,6 +263,17 @@ class PredictorDataHandler(BaseDataHandler):
 
         x_test = df_test[self.feature_names].values
         y_test = df_test[self.label_name].values * 100
+
+        # Normalize data if need.
+        if self.normalize_data:
+            if not self.drop_nan_columns:
+                raise ValueError('Normalize data must with setting `drop_nan_columns=True`.')
+            else:
+                self.scaler = StandardScaler()
+                self.scaler.fit(x_train)
+                x_train = self.scaler.transform(x_train)
+                x_validate = self.scaler.transform(x_validate)
+                x_test = self.scaler.transform(x_test)
 
         return x_train, y_train, x_validate, y_validate, x_test, y_test
 
