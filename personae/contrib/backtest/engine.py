@@ -16,7 +16,6 @@ class BaseEngine(object):
 
     def __init__(self,
                  data_dir,
-                 strategy,
                  start_date='2005-01-01',
                  end_date='2018-11-01',
                  cash=1.e8,
@@ -31,7 +30,7 @@ class BaseEngine(object):
         self.bench_df = None
 
         # 2. Strategy.
-        self.strategy = strategy
+        self.strategy = None
 
         # 3. Dates.
         self.start_date = start_date
@@ -86,7 +85,9 @@ class BaseEngine(object):
     def setup_bench_data(self):
         raise NotImplementedError
 
-    def run(self):
+    def run(self, strategy):
+
+        self.strategy = strategy
 
         self.logger.warning('Start backtest.')
 

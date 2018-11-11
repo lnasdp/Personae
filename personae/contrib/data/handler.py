@@ -147,31 +147,31 @@ class BaseDataHandler(object):
 
     @abstractmethod
     def setup_raw_data(self):
-        pass
+        raise NotImplementedError('Implement this method to set raw data.')
 
     @abstractmethod
     def setup_processed_data(self):
-        pass
+        raise NotImplementedError('Implement this method to set processed data.')
 
     @abstractmethod
     def setup_label_names(self):
-        pass
+        raise NotImplementedError('Implement this method to set label names.')
 
     @abstractmethod
     def setup_label(self):
-        pass
+        raise NotImplementedError('Implement this method to set label.')
 
     @abstractmethod
     def setup_feature_names(self):
-        pass
+        raise NotImplementedError('Implement this method to set features names.')
 
     @abstractmethod
     def setup_static_data(self):
-        pass
+        raise NotImplementedError('Implement this method to setup static data.')
 
     @abstractmethod
     def setup_rolling_data(self):
-        pass
+        raise NotImplementedError('Implement this method to setup rolling data.')
 
     @abstractmethod
     def get_split_data_by_dates(self,
@@ -181,7 +181,7 @@ class BaseDataHandler(object):
                                 validate_end_date,
                                 test_start_date,
                                 test_end_date):
-        pass
+        raise NotImplementedError('Implement this method to get split data.')
 
 
 class PredictorDataHandler(BaseDataHandler):
