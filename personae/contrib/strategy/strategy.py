@@ -87,7 +87,7 @@ class TopKStrategy(BaseStrategy):
 
 class MLTopKStrategy(BaseStrategy):
 
-    def __init__(self, predict_se: pd.Series, top_k=50, **kwargs):
+    def __init__(self, predict_se: pd.Series, top_k=100, **kwargs):
         super(MLTopKStrategy, self).__init__(**kwargs)
 
         # Predict.
@@ -104,7 +104,7 @@ class MLTopKStrategy(BaseStrategy):
         top_stock = self.predict_se.loc[cur_date:, ].nlargest(self.top_k)
         # Get target positions.
         positions = pd.Series(index=bar.index, data=0)
-        positions.loc[top_stock.index] = 100
+        positions.loc[top_stock.index] = 1000
 
         return positions
 
