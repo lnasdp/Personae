@@ -46,13 +46,13 @@ class BaseDataHandler(object):
         self.normalize_data = kwargs.get('normalize_data', False)
 
         # Dates.
-        self.train_start_date = kwargs.get('train_start_date', '2016-01-01')
-        self.train_end_date = kwargs.get('train_end_date', '2016-12-31')
+        self.train_start_date = kwargs.get('train_start_date', '2005-01-01')
+        self.train_end_date = kwargs.get('train_end_date', '2014-12-31')
 
-        self.validation_start_date = kwargs.get('validation_start_date', '2017-01-01')
-        self.validation_end_date = kwargs.get('validation_end_date', '2017-12-31')
+        self.validation_start_date = kwargs.get('validation_start_date', '2015-01-01')
+        self.validation_end_date = kwargs.get('validation_end_date', '2015-12-31')
 
-        self.test_start_date = kwargs.get('test_start_date', '2018-01-01')
+        self.test_start_date = kwargs.get('test_start_date', '2015-01-01')
         self.test_end_date = kwargs.get('test_end_date', '2018-11-01')
 
         self.rolling_train_start_dates = []
@@ -175,7 +175,7 @@ class PredictorDataHandler(BaseDataHandler):
 
         # Check data dir.
         if not self.processed_data_dir or not os.path.exists(self.processed_data_dir):
-            raise ValueError('Invalid raw data dir: {}.'.format(self.processed_data_dir))
+            raise ValueError('Invalid processed data dir: {}.'.format(self.processed_data_dir))
 
         # Here for data handler, the processed data for loader is raw data.
         loader = PredictorDataLoader(self.processed_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
@@ -271,7 +271,8 @@ class PredictorDataHandler(BaseDataHandler):
 
 if __name__ == '__main__':
     # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
+    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
     h = PredictorDataHandler(processed_data_dir=processed_data_dir,
                              normalize_data=True,
                              drop_nan_columns=True)

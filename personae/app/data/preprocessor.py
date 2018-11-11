@@ -34,10 +34,10 @@ def merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock'):
 
     # 4. Concat and cache df.
     TimeInspector.set_time_mark()
-    cache_data_path = os.path.join(merged_data_dir, '{}.pkl'.format(data_type))
+    merged_data_path = os.path.join(merged_data_dir, '{}.pkl'.format(data_type))
     df = pd.concat(dfs)  # type: pd.DataFrame
-    df.to_pickle(cache_data_path)
-    TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, cache_data_path))
+    df.to_pickle(merged_data_path)
+    TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, merged_data_path))
 
 
 def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
@@ -68,11 +68,26 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
     df = df.set_index(['DATE', 'CODE'])
     df = df.sort_index(level=[0, 1])
 
-    processed_data_path = os.path.join(processed_dir, '{}.pkl'.format(data_type))
-
     TimeInspector.set_time_mark()
-    df.to_pickle(processed_data_path)
-    TimeInspector.log_cost_time('Finished saving processed {} df to {}'.format(data_type, processed_data_path))
+
+    # Due to bug for pickle in OSX, https://stackoverflow.com/questions/31468117/
+    # df.to_pickle(processed_data_path)
+
+    # Make date range.
+    date_range = pd.date_range('1999-01-01', '2019-01-01', freq='AS')
+    cur_date = date_range[0]
+    # Save split pkl.
+    for next_date in date_range[1:]:
+        # Processed year dir.
+        processed_year_dir = os.path.join(processed_dir, str(cur_date.year))
+        if not os.path.exists(processed_year_dir):
+            os.makedirs(processed_year_dir)
+        # Processed data path.
+        processed_data_path = os.path.join(processed_year_dir, '{}.pkl'.format(data_type))
+        df_split = df.loc(axis=0)[cur_date: next_date, :]  # type: pd.DataFrame
+        df_split.to_pickle(processed_data_path)
+        cur_date = next_date
+    TimeInspector.log_cost_time('Finished saving processed split {} df to {}'.format(data_type, processed_dir))
 
 
 args_parser = argparse.ArgumentParser(prog='data_preprocessor')
@@ -107,9 +122,17 @@ if __name__ == '__main__':
     # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
     # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
-    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
+    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+
+    raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
+    merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'
+    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/processed'
+
+    # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
+    # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'
+    # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
 
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock')
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='index')

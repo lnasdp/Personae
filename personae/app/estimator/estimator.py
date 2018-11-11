@@ -6,7 +6,7 @@ import importlib
 
 from importlib import util
 
-from personae.app.estimator.trainer import StaticTrainer, RollingTrainer
+from personae.contrib.trainer.trainer import StaticTrainer, RollingTrainer
 
 
 class ConfigManager(object):
