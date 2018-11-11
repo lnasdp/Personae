@@ -64,6 +64,7 @@ class BaseDataHandler(object):
         self.rolling_test_start_dates = []
         self.rolling_test_end_dates = []
 
+        self.rolling_iterator = None
         self.rolling_total_parts = 0
         self.rolling_period = kwargs.get('rolling_period', 30)
 

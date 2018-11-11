@@ -8,6 +8,7 @@ from personae.contrib.model.model import BaseModel
 from personae.contrib.data.handler import BaseDataHandler
 
 from personae.utility.profiler import TimeInspector
+from personae.utility.logger import get_logger
 
 
 class BaseTrainer(object):
@@ -21,6 +22,9 @@ class BaseTrainer(object):
 
         # Data handler.
         self.data_handler = data_handler
+
+        # Logger.
+        self.logger = get_logger('TRAINER')
 
     @abstractmethod
     def train(self):
@@ -70,8 +74,35 @@ class StaticTrainer(BaseTrainer):
 
 class RollingTrainer(BaseTrainer):
 
+    def __init__(self, model_class, model_params: dict, data_handler: BaseDataHandler):
+        super(RollingTrainer, self).__init__(model_class, model_params, data_handler)
+        self.date_model_map = dict()
+
     def train(self):
-        self.date_model_map = dict.fromkeys(seq=[self.data_handler.test_end_date], value=[model])
+        # 1. Get total data parts.
+        total_data_parts = self.data_handler.rolling_total_parts
+        info = 'Total numbers of model are: {}, start training models...'
+        self.logger.warning(info.format(total_data_parts))
+        # 2. Rolling train.
+        for index, _ in enumerate(total_data_parts):
+            TimeInspector.set_time_mark()
+            # Get model.
+            model = self.model_class(**self.model_params)  # type: BaseModel
+            model.fit(
+                x_train=self.data_handler.x_train,
+                y_train=self.data_handler.y_train,
+                x_validation=self.data_handler.x_validation,
+                y_validation=self.data_handler.y_validation,
+                w_train=self.data_handler.w_train,
+                w_validation=self.data_handler.w_validation
+            )
+            # Save model.
+            model.name = '{}_{}'.format(model.name, index)
+            model.save()
+            # Build date - model map.
+            self.date_model_map[self.data_handler.rolling_test_end_dates[index]] = model
+            info = 'Total numbers of model are: {},' ' finished training model: {}.'
+            TimeInspector.log_cost_time(info.format(total_data_parts, index + 1))
 
     def load(self):
         pass
