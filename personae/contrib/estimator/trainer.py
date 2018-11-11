@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import pandas as pd
+import numpy as np
 
 from abc import abstractmethod
 
@@ -79,12 +80,12 @@ class RollingTrainer(BaseTrainer):
         self.date_model_map = dict()
 
     def train(self):
-        # 1. Get total data parts.
+        # Get total data parts.
         total_data_parts = self.data_handler.rolling_total_parts
         info = 'Total numbers of model are: {}, start training models...'
         self.logger.warning(info.format(total_data_parts))
-        # 2. Rolling train.
-        for index, _ in enumerate(total_data_parts):
+        # Rolling train.
+        for index, _ in enumerate(self.data_handler.rolling_iterator):
             TimeInspector.set_time_mark()
             # Get model.
             model = self.model_class(**self.model_params)  # type: BaseModel
@@ -103,9 +104,30 @@ class RollingTrainer(BaseTrainer):
             self.date_model_map[self.data_handler.rolling_test_end_dates[index]] = model
             info = 'Total numbers of model are: {},' ' finished training model: {}.'
             TimeInspector.log_cost_time(info.format(total_data_parts, index + 1))
+        # Reset rolling data.
+        self.data_handler.setup_rolling_data()
 
     def load(self):
-        pass
+        # Get total data parts.
+        total_data_parts = self.data_handler.rolling_total_parts
+        # Load models.
+        for index in range(total_data_parts):
+            model = self.model_class(**self.model_params)
+            model.name = '{}_{}'.format(model.name, index)
+            model.load()
+            # Build date - model map.
+            self.date_model_map[self.data_handler.rolling_test_end_dates[index]] = model
 
     def predict(self):
-        pass
+        predict_scores = []
+        for index, _ in enumerate(self.data_handler.rolling_iterator):
+            # Get model.
+            model = self.date_model_map[self.data_handler.rolling_test_end_dates[index]]
+            # Get predict score.
+            predict_score = model.predict(x_test=self.data_handler.x_test)
+            # Add predict score to scores.
+            predict_scores.append(predict_score)
+        # Concat result.
+        predict_scores = np.concatenate(predict_scores)
+        return predict_scores
+
