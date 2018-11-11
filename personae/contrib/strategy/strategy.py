@@ -87,7 +87,7 @@ class TopKStrategy(BaseStrategy):
 
 class MLTopKStrategy(BaseStrategy):
 
-    def __init__(self, predict_se: pd.Series, top_k=10, **kwargs):
+    def __init__(self, predict_se: pd.Series, top_k=50, **kwargs):
         super(MLTopKStrategy, self).__init__(**kwargs)
 
         # Predict.

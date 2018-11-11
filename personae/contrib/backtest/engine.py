@@ -15,7 +15,7 @@ from personae.contrib.data.loader import PredictorDataLoader
 class BaseEngine(object):
 
     def __init__(self,
-                 data_dir,
+                 processed_data_dir,
                  start_date='2005-01-01',
                  end_date='2018-11-01',
                  cash=1.e8,
@@ -25,7 +25,7 @@ class BaseEngine(object):
                  **kwargs):
 
         # 1. Data.
-        self.data_dir = data_dir
+        self.processed_data_dir = processed_data_dir
         self.data_loader = None
         self.stock_df = None
         self.bench_df = None
@@ -222,7 +222,7 @@ class BaseEngine(object):
 class PredictorEngine(BaseEngine):
 
     def setup_data_loader(self):
-        self.data_loader = PredictorDataLoader(self.data_dir, start_date=self.start_date, end_date=self.end_date)
+        self.data_loader = PredictorDataLoader(self.processed_data_dir, start_date=self.start_date, end_date=self.end_date)
 
     def setup_stock_data(self):
         self.stock_df = self.data_loader.load_data(codes='all', data_type='stock')

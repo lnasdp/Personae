@@ -70,7 +70,9 @@ class StaticTrainer(BaseTrainer):
         TimeInspector.log_cost_time('Finished loading model. (Static)')
 
     def predict(self):
-        return self.model.predict(x_test=self.data_handler.x_test)
+        predict_scores = self.model.predict(x_test=self.data_handler.x_test)
+        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=predict_scores)
+        return predict_scores
 
 
 class RollingTrainer(BaseTrainer):
@@ -124,10 +126,11 @@ class RollingTrainer(BaseTrainer):
             # Get model.
             model = self.date_model_map[self.data_handler.rolling_test_end_dates[index]]
             # Get predict score.
-            predict_score = model.predict(x_test=self.data_handler.x_test)
+            _predict_scores = model.predict(x_test=self.data_handler.x_test)
+            _predict_scores = pd.Series(index=self.data_handler.x_test.index, data=predict_scores)
             # Add predict score to scores.
-            predict_scores.append(predict_score)
+            predict_scores.append(_predict_scores)
         # Concat result.
-        predict_scores = np.concatenate(predict_scores)
+        predict_scores = pd.concat(predict_scores)
         return predict_scores
 

@@ -6,10 +6,7 @@ import importlib
 
 from importlib import util
 
-from personae.contrib.estimator.trainer import StaticTrainer, RollingTrainer
-from personae.contrib.backtest.engine import PredictorEngine
-from personae.contrib.data.handler import BaseDataHandler
-from personae.contrib.model.model import BaseModel
+from personae.app.estimator.trainer import StaticTrainer, RollingTrainer
 
 
 class ConfigManager(object):
@@ -125,7 +122,10 @@ class Estimator(object):
                                                       self.backtest_engine_config.backtest_engine_module,
                                                       'personae.contrib.backtest.engine')
 
-        self.backtest_engine = backtest_class(**self.backtest_engine_config.backtest_engine_params)
+        self.backtest_engine = backtest_class(processed_data_dir=self.data_handler.processed_data_dir,
+                                              start_date=self.data_handler.test_start_date,
+                                              end_date=self.data_handler.test_end_date,
+                                              **self.backtest_engine_config.backtest_engine_params)
 
     @staticmethod
     def _load_class_with_module(class_name, module_path, default_module_path):
@@ -141,30 +141,24 @@ class Estimator(object):
 
         return object_class
 
-    def _train(self):
-        trainer_class = StaticTrainer if not self.model_config.model_rolling else RollingTrainer
-        self.trainer = trainer_class(self.model_class,
-                                     self.model_config.model_params,
-                                     self.data_handler)
-        self.trainer.train()
-
-    def _restore(self):
-        trainer_class = StaticTrainer if not self.model_config.model_rolling else RollingTrainer
-        self.trainer = trainer_class(self.model_class,
-                                     self.model_config.model_params,
-                                     self.data_handler)
-        self.trainer.load()
-
     def run(self):
         # Trainer.
+        trainer_class = StaticTrainer if not self.model_config.model_rolling else RollingTrainer
+        self.trainer = trainer_class(self.model_class,
+                                     self.model_config.model_params,
+                                     self.data_handler)
         if self.model_config.model_mode == 'train':
-            self._train()
+            self.trainer.train()
         else:
-            self._restore()
+            self.trainer.load()
 
         # Strategy.
-        self.strategy = self.strategy_class(predict_se=1, **self.strategy_config.strategy_params)
-        predict_scores = self.trainer.predict()
+        self.strategy = self.strategy_class(predict_se=self.trainer.predict(), **self.strategy_config.strategy_params)
+
+        # Backtest.
+        self.backtest_engine.run(self.strategy)
+        self.backtest_engine.analyze()
+        self.backtest_engine.plot()
 
 
 if __name__ == '__main__':

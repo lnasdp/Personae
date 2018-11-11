@@ -243,14 +243,14 @@ class PredictorDataHandler(BaseDataHandler):
         df_validate = self.processed_df.loc(axis=0)[validate_start_date: validate_end_date, :]  # type: pd.DataFrame
         df_test = self.processed_df.loc(axis=0)[test_start_date: test_end_date, :]  # type: pd.DataFrame
 
-        x_train = df_train[self.feature_names].values
-        y_train = df_train[self.label_name].values * 100
+        x_train = df_train[self.feature_names]
+        y_train = df_train[self.label_name] * 100
 
-        x_validation = df_validate[self.feature_names].values
-        y_validation = df_validate[self.label_name].values * 100
+        x_validation = df_validate[self.feature_names]
+        y_validation = df_validate[self.label_name] * 100
 
-        x_test = df_test[self.feature_names].values
-        y_test = df_test[self.label_name].values * 100
+        x_test = df_test[self.feature_names]
+        y_test = df_test[self.label_name] * 100
 
         # Normalize data if need.
         if self.normalize_data:
