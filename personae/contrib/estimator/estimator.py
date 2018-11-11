@@ -6,6 +6,7 @@ import importlib
 
 from importlib import util
 
+from personae.contrib.estimator.trainer import StaticTrainer, RollingTrainer
 from personae.contrib.backtest.engine import PredictorEngine
 from personae.contrib.data.handler import BaseDataHandler
 from personae.contrib.model.model import BaseModel
@@ -40,6 +41,7 @@ class ModelConfig(object):
         self.model_class = config.get('class', 'BaseModel')
         self.model_module = config.get('module', None)
         self.model_rolling = config.get('rolling', False)
+        self.model_mode = config.get('mode', 'train')
         self.model_params = config
 
 
@@ -79,12 +81,15 @@ class Estimator(object):
 
         # Init model.
         self.model_class = None
-        self.models = []
-        self._init_model()
+        self._init_model_class()
+
+        # Init trainer.
+        self.trainer = None
 
         # Init strategy.
+        self.strategy_class = None
         self.strategy = None
-        self._init_strategy()
+        self._init_strategy_class()
 
         # Init backtest engine.
         self.backtest_engine = None
@@ -98,7 +103,7 @@ class Estimator(object):
 
         self.data_handler = handler_class(**self.data_config.handler_params)
 
-    def _init_model(self):
+    def _init_model_class(self):
 
         model_class = self._load_class_with_module(self.model_config.model_class,
                                                    self.model_config.model_module,
@@ -106,13 +111,13 @@ class Estimator(object):
 
         self.model_class = model_class
 
-    def _init_strategy(self):
+    def _init_strategy_class(self):
 
         strategy_class = self._load_class_with_module(self.strategy_config.strategy_class,
                                                       self.strategy_config.strategy_module,
                                                       'personae.contrib.strategy.strategy')
 
-        self.strategy = strategy_class(**self.strategy_config.strategy_params)
+        self.strategy_class = strategy_class
 
     def _init_backtest_engine(self):
 
@@ -137,27 +142,29 @@ class Estimator(object):
         return object_class
 
     def _train(self):
+        trainer_class = StaticTrainer if not self.model_config.model_rolling else RollingTrainer
+        self.trainer = trainer_class(self.model_class,
+                                     self.model_config.model_params,
+                                     self.data_handler)
+        self.trainer.train()
 
-        if not self.model_config.model_rolling:
-            # Get data handler.
-            data_handler = self.data_handler  # type: BaseDataHandler
-
-            # Get model.
-            model = self.model_class(**self.model_config.model_params)  # type: BaseModel
-            model.fit(
-                x_train=data_handler.x_train,
-                y_train=data_handler.y_train,
-                x_validation=data_handler.x_validation,
-                y_validation=data_handler.y_validation,
-                w_train=data_handler.w_train,
-                w_validation=data_handler.w_validation
-            )
-
-            self.models.append(model)
+    def _restore(self):
+        trainer_class = StaticTrainer if not self.model_config.model_rolling else RollingTrainer
+        self.trainer = trainer_class(self.model_class,
+                                     self.model_config.model_params,
+                                     self.data_handler)
+        self.trainer.load()
 
     def run(self):
-        # Train model.
-        pass
+        # Trainer.
+        if self.model_config.model_mode == 'train':
+            self._train()
+        else:
+            self._restore()
+
+        # Strategy.
+        self.strategy = self.strategy_class(predict_se=1, **self.strategy_config.strategy_params)
+        predict_scores = self.trainer.predict()
 
 
 if __name__ == '__main__':

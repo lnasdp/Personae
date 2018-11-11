@@ -9,6 +9,9 @@ from abc import abstractmethod
 
 class BaseStrategy(object):
 
+    def __init__(self, **kwargs):
+        pass
+
     @abstractmethod
     def before_trading(self, **kwargs):
         pass
@@ -65,7 +68,8 @@ class SimpleReturnStrategy(BaseStrategy):
 
 class TopKStrategy(BaseStrategy):
 
-    def __init__(self, top_k=10):
+    def __init__(self, top_k=10, **kwargs):
+        super(TopKStrategy, self).__init__(**kwargs)
         self.top_k = top_k
 
     def before_trading(self, **kwargs):
@@ -83,7 +87,9 @@ class TopKStrategy(BaseStrategy):
 
 class MLTopKStrategy(BaseStrategy):
 
-    def __init__(self, predict_se: pd.Series, top_k=10):
+    def __init__(self, predict_se: pd.Series, top_k=10, **kwargs):
+        super(MLTopKStrategy, self).__init__(**kwargs)
+
         # Predict.
         self.predict_se = predict_se
 
