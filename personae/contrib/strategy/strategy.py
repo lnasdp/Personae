@@ -64,11 +64,14 @@ class SimpleReturnStrategy(BaseStrategy):
 
 class TopKStrategy(BaseStrategy):
 
+    def __init__(self, top_k=10):
+        self.top_k = top_k
+
     def before_trading(self, **kwargs):
         pass
 
     def handle_bar(self, bar: pd.DataFrame):
-        top_stock = bar.nlargest(1, columns=['RETURN_SHIFT_0'])
+        top_stock = bar.nlargest(self.top_k, columns=['RETURN_SHIFT_0'])
         positions = pd.Series(index=bar.index, data=0)
         positions.loc[top_stock.index] = 100
         return positions

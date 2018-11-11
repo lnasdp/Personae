@@ -86,10 +86,18 @@ args_parser.add_argument('-m',
 
 if __name__ == '__main__':
 
-    args_parsed = args_parser.parse_args()
+    # args_parsed = args_parser.parse_args()
+    #
+    # raw_data_dir = args_parsed.raw_data_dir
+    # merged_data_dir = args_parsed.merged_data_dir
+    # processed_data_dir = args_parsed.processed_data_dir
 
-    merge_raw_df(args_parsed.raw_data_dir, args_parsed.merged_data_dir, data_type='stock')
-    merge_raw_df(args_parsed.raw_data_dir, args_parsed.merged_data_dir, data_type='index')
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\raw'
+    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
 
-    process_merged_df(args_parsed.merged_data_dir, args_parsed.processed_data_dir, data_type='stock')
-    process_merged_df(args_parsed.merged_data_dir, args_parsed.processed_data_dir, data_type='index')
+    merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock')
+    merge_raw_df(raw_data_dir, merged_data_dir, data_type='index')
+
+    process_merged_df(merged_data_dir, processed_data_dir, data_type='stock')
+    process_merged_df(merged_data_dir, processed_data_dir, data_type='index')

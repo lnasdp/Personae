@@ -1,6 +1,8 @@
 # coding=utf-8
 
 import pandas as pd
+import numpy as np
+from numpy.core.multiarray import ndarray
 
 from sklearn.preprocessing import StandardScaler
 
@@ -14,13 +16,16 @@ class BaseDataHandler(object):
 
     def __init__(self, **kwargs):
 
+        # Df.
         self.raw_df = None
         self.processed_df = None
 
+        # Labels and features.
         self.label_name = None
         self.label_names = None
         self.feature_names = None
 
+        # Data x, y.
         self.x_train = None
         self.y_train = None
 
@@ -33,12 +38,22 @@ class BaseDataHandler(object):
         self.w_train = None
         self.w_validation = None
 
-        self.scaler = None
+        # Scaler.
+        self.scaler = StandardScaler()
 
+        # Raw data dir.
         self.raw_data_dir = kwargs.get('raw_data_dir')
+
+        # Drop inf columns.
+        self.replace_inf_with_nan = kwargs.get('replace_inf_with_nan', True)
+
+        # Drop nan columns.
         self.drop_nan_columns = kwargs.get('drop_nan_columns', False)
+
+        # Normalize data.
         self.normalize_data = kwargs.get('normalize_data', False)
 
+        # Dates.
         self.train_start_date = kwargs.get('train_start_date', '2016-01-01')
         self.train_end_date = kwargs.get('train_end_date', '2016-12-31')
 
@@ -179,15 +194,21 @@ class PredictorDataHandler(BaseDataHandler):
         self.raw_df = loader.load_data()
 
     def setup_processed_data(self):
-        # 1. Date slice.
+        # Date slice.
         processed_df = self.raw_df.copy()  # type: pd.DataFrame
 
-        # 2. Drop nan labels.
+        # Drop nan labels.
         profiler.TimeInspector.set_time_mark()
         processed_df = processed_df[~processed_df.loc(axis=1)['LABEL_0'].isnull()]
         profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
 
-        # 3. Drop nan columns if need.
+        # Replace inf with nan if need.
+        if self.replace_inf_with_nan:
+            profiler.TimeInspector.set_time_mark()
+            processed_df = processed_df.replace([-np.inf, np.inf], np.nan)
+            profiler.TimeInspector.log_cost_time('Finished replacing inf with nan.')
+
+        # Drop nan columns if need.
         if self.drop_nan_columns:
             profiler.TimeInspector.set_time_mark()
             processed_df = processed_df.dropna()
@@ -258,26 +279,33 @@ class PredictorDataHandler(BaseDataHandler):
         x_train = df_train[self.feature_names].values
         y_train = df_train[self.label_name].values * 100
 
-        x_validate = df_validate[self.feature_names].values
-        y_validate = df_validate[self.label_name].values * 100
+        x_validation = df_validate[self.feature_names].values
+        y_validation = df_validate[self.label_name].values * 100
 
         x_test = df_test[self.feature_names].values
         y_test = df_test[self.label_name].values * 100
 
         # Normalize data if need.
         if self.normalize_data:
-            if not self.drop_nan_columns:
-                raise ValueError('Normalize data must with setting `drop_nan_columns=True`.')
-            else:
-                self.scaler = StandardScaler()
-                self.scaler.fit(x_train)
-                x_train = self.scaler.transform(x_train)
-                x_validate = self.scaler.transform(x_validate)
-                x_test = self.scaler.transform(x_test)
+            x_train, x_validation, x_test = self.get_normalized_data(x_train, x_validation, x_test)
 
-        return x_train, y_train, x_validate, y_validate, x_test, y_test
+        return x_train, y_train, x_validation, y_validation, x_test, y_test
+
+    def get_normalized_data(self, x_train: np.ndarray, x_validation: np.ndarray, x_test: np.ndarray):
+        try:
+            self.scaler.fit(x_train)
+            x_train = self.scaler.transform(x_train)
+            x_validation = self.scaler.transform(x_validation)
+            x_test = self.scaler.transform(x_test)
+        except ValueError as error:
+            raise error
+        return x_train, x_validation, x_test
 
 
 if __name__ == '__main__':
-    h = PredictorDataHandler(raw_data_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\processed')
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
+    h = PredictorDataHandler(raw_data_dir=raw_data_dir,
+                             normalize_data=True,
+                             drop_nan_columns=True)
     print(h.x_train)
