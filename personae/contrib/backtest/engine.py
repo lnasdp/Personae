@@ -21,13 +21,16 @@ class BaseEngine(object):
                  cash=1.e8,
                  charge=0.002,
                  slippage=0.01,
-                 benchmark='sh000905'):
+                 benchmark='sh000905',
+                 **kwargs):
 
         # 1. Data.
         self.data_dir = data_dir
         self.data_loader = None
         self.stock_df = None
         self.bench_df = None
+
+        self.kwargs = kwargs
 
         # 2. Strategy.
         self.strategy = None
@@ -75,15 +78,15 @@ class BaseEngine(object):
 
     @abstractmethod
     def setup_data_loader(self):
-        raise NotImplementedError
+        raise NotImplementedError('Implement this method to setup data loader.')
 
     @abstractmethod
     def setup_stock_data(self):
-        raise NotImplementedError
+        raise NotImplementedError('Implement this method to setup stock data')
 
     @abstractmethod
     def setup_bench_data(self):
-        raise NotImplementedError
+        raise NotImplementedError('Implement this method to setup bench data')
 
     def run(self, strategy):
 
@@ -126,7 +129,7 @@ class BaseEngine(object):
             cur_stock_close = cur_stock_bar['CLOSE'].reset_index('DATE', drop=True)
 
             # 2. Let strategy handle bar.
-            tar_positions = self.strategy.handle_bar(cur_stock_bar.reset_index('DATE', drop=True))
+            tar_positions = self.strategy.handle_bar(cur_stock_bar.reset_index('DATE', drop=True), cur_date)
 
             if not isinstance(tar_positions, pd.Series):
                 raise TypeError('tar_positions should a instance of pd.series.')
@@ -231,10 +234,9 @@ class PredictorEngine(BaseEngine):
 if __name__ == '__main__':
     from personae.contrib.strategy.strategy import RandomStrategy, SimpleReturnStrategy, HoldStrategy
     e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed',
-                        HoldStrategy(),
                         start_date='2014-01-01',
                         end_date='2016-01-01',
                         cash=100000)
-    e.run()
+    e.run(HoldStrategy())
     e.analyze()
     e.plot()

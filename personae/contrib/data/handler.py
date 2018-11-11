@@ -2,12 +2,11 @@
 
 import pandas as pd
 import numpy as np
-from numpy.core.multiarray import ndarray
-
+import os
 from sklearn.preprocessing import StandardScaler
 
 from personae.contrib.data.loader import PredictorDataLoader
-from personae.utility import profiler, logger
+from personae.utility import profiler
 
 from abc import abstractmethod
 
@@ -17,7 +16,6 @@ class BaseDataHandler(object):
     def __init__(self, **kwargs):
 
         # Df.
-        self.raw_df = None
         self.processed_df = None
 
         # Labels and features.
@@ -42,13 +40,7 @@ class BaseDataHandler(object):
         self.scaler = StandardScaler()
 
         # Raw data dir.
-        self.raw_data_dir = kwargs.get('raw_data_dir')
-
-        # Drop inf columns.
-        self.replace_inf_with_nan = kwargs.get('replace_inf_with_nan', True)
-
-        # Drop nan columns.
-        self.drop_nan_columns = kwargs.get('drop_nan_columns', False)
+        self.processed_data_dir = kwargs.get('processed_data_dir')
 
         # Normalize data.
         self.normalize_data = kwargs.get('normalize_data', False)
@@ -74,10 +66,6 @@ class BaseDataHandler(object):
 
         self.rolling_total_parts = 0
         self.rolling_period = kwargs.get('rolling_period', 30)
-
-        profiler.TimeInspector.set_time_mark()
-        self.setup_raw_data()
-        profiler.TimeInspector.log_cost_time('Finished loading raw data.')
 
         profiler.TimeInspector.set_time_mark()
         self.setup_processed_data()
@@ -146,10 +134,6 @@ class BaseDataHandler(object):
         self.rolling_total_parts = len(self.rolling_train_start_dates)
 
     @abstractmethod
-    def setup_raw_data(self):
-        raise NotImplementedError('Implement this method to set raw data.')
-
-    @abstractmethod
     def setup_processed_data(self):
         raise NotImplementedError('Implement this method to set processed data.')
 
@@ -186,33 +170,17 @@ class BaseDataHandler(object):
 
 class PredictorDataHandler(BaseDataHandler):
 
-    def setup_raw_data(self):
-        # 1. Here for data handler, the processed data for loader is raw data.
-        loader = PredictorDataLoader(self.raw_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
-
-        # 2. Load raw df.
-        self.raw_df = loader.load_data()
-
     def setup_processed_data(self):
-        # Date slice.
-        processed_df = self.raw_df.copy()  # type: pd.DataFrame
 
-        # Drop nan labels.
-        profiler.TimeInspector.set_time_mark()
-        processed_df = processed_df[~processed_df.loc(axis=1)['LABEL_0'].isnull()]
-        profiler.TimeInspector.log_cost_time('Finished dropping nan labels.')
+        # Check data dir.
+        if not self.processed_data_dir or not os.path.exists(self.processed_data_dir):
+            raise ValueError('Invalid raw data dir: {}.'.format(self.processed_data_dir))
 
-        # Replace inf with nan if need.
-        if self.replace_inf_with_nan:
-            profiler.TimeInspector.set_time_mark()
-            processed_df = processed_df.replace([-np.inf, np.inf], np.nan)
-            profiler.TimeInspector.log_cost_time('Finished replacing inf with nan.')
+        # Here for data handler, the processed data for loader is raw data.
+        loader = PredictorDataLoader(self.processed_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
 
-        # Drop nan columns if need.
-        if self.drop_nan_columns:
-            profiler.TimeInspector.set_time_mark()
-            processed_df = processed_df.dropna()
-            profiler.TimeInspector.log_cost_time('Finished dropping nan columns.')
+        # Load processed data.
+        processed_df = loader.load_data()  # type: pd.DataFrame
 
         self.processed_df = processed_df
 
@@ -221,9 +189,7 @@ class PredictorDataHandler(BaseDataHandler):
         self.label_names = ['LABEL_0', 'ALPHA']
 
     def setup_label(self):
-        profiler.TimeInspector.set_time_mark()
         self.processed_df['ALPHA'] = self.processed_df['LABEL_0'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
-        profiler.TimeInspector.log_cost_time('Finished calculating new label alpha.')
 
     def setup_feature_names(self):
         self.feature_names = list(set(self.processed_df.columns) - set(self.label_names))
@@ -303,9 +269,9 @@ class PredictorDataHandler(BaseDataHandler):
 
 
 if __name__ == '__main__':
-    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
-    h = PredictorDataHandler(raw_data_dir=raw_data_dir,
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
+    h = PredictorDataHandler(processed_data_dir=processed_data_dir,
                              normalize_data=True,
                              drop_nan_columns=True)
     print(h.x_train)

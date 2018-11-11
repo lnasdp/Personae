@@ -3,6 +3,7 @@
 import os
 import glob
 import argparse
+import numpy as np
 import pandas as pd
 
 from personae.utility import factor
@@ -40,19 +41,29 @@ def merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock'):
 
 
 def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
-    # 1. Load merged df.
+    # Load merged df.
     df = pd.read_pickle(os.path.join(cache_data_dir, '{}.pkl'.format(data_type)))  # type: pd.DataFrame
 
-    # 2. Remove unused columns.
+    # Remove unused columns.
     columns = list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'})
     columns.sort()
     df = df[columns]
 
-    # 2. Calculate factors.
+    # Calculate factors.
     TimeInspector.set_time_mark()
     for factor_name, calculator, args in factor.name_func_args_pairs:
         df[factor_name] = calculator(df, *args)
     TimeInspector.log_cost_time('Finished calculating factors')
+
+    # Replace inf with nan.
+    TimeInspector.set_time_mark()
+    df = df.replace([-np.inf, np.inf], np.nan)
+    TimeInspector.log_cost_time('Finished replacing inf with nan.')
+
+    # Drop nan columns.
+    TimeInspector.set_time_mark()
+    df = df.dropna()
+    TimeInspector.log_cost_time('Finished dropping nan columns.')
 
     df = df.set_index(['DATE', 'CODE'])
     df = df.sort_index(level=[0, 1])
