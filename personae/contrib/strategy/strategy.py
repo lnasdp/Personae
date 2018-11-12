@@ -54,10 +54,13 @@ class MLTopKStrategy(BaseStrategy):
 
     def handle_bar(self, positions_dic: dict, cur_date, **kwargs):
         # Get top k.
-        top_stock = self.predict_se.loc[cur_date].nlargest(self.top_k)
+        long_stock = self.predict_se.loc[cur_date].nlargest(self.top_k)
+        short_stock = self.predict_se.loc[cur_date].nsmallest(self.top_k)
+
         # Get target positions.
         tar_positions = pd.Series(index=self.predict_se.index.levels[1], data=0)
-        tar_positions[top_stock.index] = 100
+        tar_positions[long_stock.index] = 300
+        tar_positions[short_stock.index] = -300
         positions_dic[cur_date] = tar_positions
 
     def after_trading(self, **kwargs):

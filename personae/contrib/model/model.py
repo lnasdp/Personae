@@ -61,8 +61,9 @@ class BaseNNModel(BaseModel):
         self.y_space = 1
 
         # Input tensor.
-        self.x_input = tf.placeholder(tf.float32, shape=[None, self.x_space], name='x_input')
-        self.y_input = tf.placeholder(tf.float32, shape=[None, ], name='y_input')
+        with tf.variable_scope('input'):
+            self.x_input = tf.placeholder(tf.float32, shape=[None, self.x_space], name='x_input')
+            self.y_input = tf.placeholder(tf.float32, shape=[None, ], name='y_input')
 
         # Output tensor.
         self.y_predict = None
@@ -73,7 +74,6 @@ class BaseNNModel(BaseModel):
 
         # Model persistence.
         self.saver = None
-        self.save_path = '{}.ckpt'.format(self.save_path)
         self.builder_signature = None
 
         # Session.
@@ -113,7 +113,7 @@ class BaseNNModel(BaseModel):
                     train_step + 1,
                     best_validation_loss
                 ))
-                self.load()
+                self.saver.restore(self.session, self.save_path)
                 break
             # Get batch.
             data_size = len(x_train)
@@ -204,34 +204,37 @@ class MLPModel(BaseNNModel):
         dense = None
 
         # Layers.
-        for layer_index in range(num_hidden_layers):
+        with tf.variable_scope('dense'):
+            for layer_index in range(num_hidden_layers):
 
-            if layer_index == 0:
-                inputs = self.x_input
-            else:
-                inputs = dense
+                if layer_index == 0:
+                    inputs = self.x_input
+                else:
+                    inputs = dense
 
-            dense = tf.layers.dense(inputs=inputs,
-                                    units=num_hidden_units[layer_index],
-                                    activation=tf.nn.leaky_relu,
-                                    kernel_initializer=weight_initializer,
-                                    name='dense_{}'.format(layer_index))
-        # Predict tensor.
-        self.y_predict = tf.layers.dense(inputs=dense,
-                                         units=self.y_space,
-                                         kernel_initializer=weight_initializer,
-                                         name='y_predict')
-        self.y_predict = tf.reshape(self.y_predict, (-1, ))
+                dense = tf.layers.dense(inputs=inputs,
+                                        units=num_hidden_units[layer_index],
+                                        activation=tf.nn.leaky_relu,
+                                        kernel_initializer=weight_initializer,
+                                        name='dense_{}'.format(layer_index))
+            # Predict tensor.
+        with tf.variable_scope('output'):
+            self.y_predict = tf.layers.dense(inputs=dense,
+                                             units=self.y_space,
+                                             kernel_initializer=weight_initializer,
+                                             name='y_predict')
+            self.y_predict = tf.reshape(self.y_predict, (-1, ))
 
         # Loss func.
-        if loss_func == 'mse':
-            self.loss_func = tf.losses.mean_squared_error(self.y_input, self.y_predict)
-        else:
-            raise NotImplementedError('Unsupported loss func name: {}.'.format(loss_func))
+        with tf.variable_scope('train'):
+            if loss_func == 'mse':
+                self.loss_func = tf.losses.mean_squared_error(self.y_input, self.y_predict)
+            else:
+                raise NotImplementedError('Unsupported loss func name: {}.'.format(loss_func))
 
-        # Optimizer and train op.
-        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-        self.train_op = optimizer.minimize(self.loss_func)
+            # Optimizer and train op.
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            self.train_op = optimizer.minimize(self.loss_func)
 
         # Builder.
         self.builder_signature = tf.saved_model.signature_def_utils.build_signature_def(
@@ -246,8 +249,8 @@ class MLPModel(BaseNNModel):
             method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
         )
 
-        self.saver = tf.train.Saver(max_to_keep=1)
         self.session = kwargs.get('session', tf.Session())
+        self.saver = tf.train.Saver()
 
 
 class LightGBMModel(BaseModel):

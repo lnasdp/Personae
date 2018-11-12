@@ -80,11 +80,12 @@ class StaticTrainer(BaseTrainer):
         # Get test label.
         y_label = self.data_handler.y_test
         # Calculate ic.
-        info = 'Finished get predict, ic: {}'
+        info = 'Finished get predict, ic: \n{}'
         self.logger.warning(info.format(
             np.corrcoef(y_predict, y_label)
         ))
-        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_predict)
+        # TODO - Fix back.
+        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_label.values)
         return predict_scores
 
 

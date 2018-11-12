@@ -140,7 +140,8 @@ class BaseEngine(object):
             positions_diff = positions_diff.fillna(value=0)
 
             # Calculate adjusting cash.
-            cash_adjust = np.sum(-positions_diff * cur_stock_close)
+
+            cash_adjust = np.sum((-positions_diff * cur_stock_close).fillna(value=0))
 
             # Calculate holdings.
             holdings = np.sum(tar_positions * cur_stock_close)
@@ -170,7 +171,7 @@ class BaseEngine(object):
                        'Holdings: {3:.3f} | ' \
                        'RoE: {4:.3f} | ' \
                        'Returns: {5:.3f}'
-            self.logger.info(log_info.format(cur_date, cash, cash_adjust, holdings, roe, returns))
+            self.logger.warning(log_info.format(cur_date, cash, cash_adjust, holdings, roe, returns))
 
             self.strategy.after_trading()
 

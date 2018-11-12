@@ -20,12 +20,12 @@ x_space, y_space = data_handler.x_train.shape[1], 1
 
 model = MLPModel(x_space=x_space, y_space=y_space, train_steps=10000)
 
-# model.fit(data_handler.x_train.values,
-#           data_handler.y_train.values,
-#           data_handler.x_validation.values,
-#           data_handler.y_validation.values)
+model.fit(data_handler.x_train.values,
+          data_handler.y_train.values,
+          data_handler.x_validation.values,
+          data_handler.y_validation.values)
 
-model.load()
+# model.load()
 
 print(np.corrcoef(data_handler.y_train, model.predict(data_handler.x_train.values)))
 print(np.corrcoef(data_handler.y_validation, model.predict(data_handler.x_validation.values)))
