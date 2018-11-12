@@ -51,7 +51,7 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
 
     # Calculate factors.
     TimeInspector.set_time_mark()
-    for factor_name, calculator, args in factor.name_func_args_pairs:
+    for factor_name, calculator, args in factor.get_name_func_args_pairs(data_type):
         df[factor_name] = calculator(df, *args)
     TimeInspector.log_cost_time('Finished calculating factors')
 
@@ -122,13 +122,13 @@ if __name__ == '__main__':
     # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
     # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
 
-    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
-    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
+    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
 
-    raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
-    merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'
-    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/processed'
+    # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
+    # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'
+    # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/processed'
 
     # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
     # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'

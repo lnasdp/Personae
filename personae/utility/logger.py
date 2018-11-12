@@ -11,7 +11,7 @@ loggers_map = {
 
 def get_logger(module_name,
                log_dir='/tmp/',
-               enable_fh=True,
+               enable_fh=False,
                sh_level=logging.WARNING,
                fh_level=logging.INFO):
 

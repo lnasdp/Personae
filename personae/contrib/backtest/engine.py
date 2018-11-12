@@ -70,11 +70,11 @@ class BaseEngine(object):
                                            names=['DATE', 'CODE'])
 
         self.positions_se = pd.Series(index=index, data=0).loc[self.start_date: self.end_date, :]
-        self.returns_se = pd.Series(index=index, data=0.).loc[self.start_date: self.end_date, :]
+        self.returns_se = pd.Series(index=self.available_dates, data=0.)
         self.roe_se = pd.Series(index=self.available_dates, data=0.)
 
         # 8. Logger.
-        self.logger = logger.get_logger('BACKTEST')
+        self.logger = logger.get_logger('BACKTEST', **kwargs)
 
     @abstractmethod
     def setup_data_loader(self):
@@ -94,19 +94,18 @@ class BaseEngine(object):
 
         self.logger.warning('Start backtest.')
 
-        # 1. Init cash.
-        cash = self.cash
-        initial_cash = cash
+        # Cash.
+        cash, initial_cash = self.cash, self.cash
 
-        # 2. Init dates.
+        # Dates.
         cur_date = next(self.iter_dates)
         last_date = cur_date
 
-        # 3. Init returns.
-        stock_returns_se = self.stock_df['CLOSE'] / self.stock_df['CLOSE'].shift(1) - 1  # type: pd.Series
-        stock_returns_se.fillna(0.)
-        bench_returns_se = self.bench_df['CLOSE'] / self.bench_df['CLOSE'].shift(1) - 1  # type: pd.Series
-        bench_returns_se.fillna(0.)
+        # Returns.
+        stock_returns_se = self.stock_df['RETURN_SHIFT_0']  # type: pd.Series
+        stock_returns_se[cur_date] = 0.
+        bench_returns_se = self.bench_df['RETURN_SHIFT_0']  # type: pd.Series
+        bench_returns_se[cur_date] = 0.
 
         TimeInspector.set_time_mark()
         while cur_date:
@@ -126,19 +125,21 @@ class BaseEngine(object):
 
             # 1. Get cur stock bar.
             cur_bar_return = stock_returns_se.loc[cur_date, :].reset_index('DATE', drop=True)
-            cur_stock_close = cur_stock_bar['CLOSE'].reset_index('DATE', drop=True)
+            cur_stock_close = cur_stock_bar['ADJUST_PRICE'].reset_index('DATE', drop=True)
 
-            # 2. Let strategy handle bar.
+            # 2. Get cur positions.
+            cur_positions = self.positions_se.loc(axis=0)[last_date, :].reset_index('DATE', drop=True)
+
+            # 3. Let strategy handle bar.
             tar_positions = self.strategy.handle_bar(cur_stock_bar.reset_index('DATE', drop=True), cur_date)
 
             if not isinstance(tar_positions, pd.Series):
                 raise TypeError('tar_positions should a instance of pd.series.')
 
-            # 3. Update tar positions.
-            self.positions_se.loc[cur_date, :] = tar_positions
-
-            # 4. Get cur positions.
-            cur_positions = self.positions_se.loc(axis=0)[last_date, :].reset_index('DATE', drop=True)
+            # 4. Update tar positions.
+            self.positions_se.loc[cur_date, :] = pd.Series(index=pd.MultiIndex.from_product([[cur_date],
+                                                                                             tar_positions.index]),
+                                                           data=tar_positions.values)
 
             # 5. Calculate positions diff.
             positions_diff = tar_positions - cur_positions  # type: pd.Series
@@ -181,7 +182,7 @@ class BaseEngine(object):
                        'Holdings: {5:.3f} | ' \
                        'RoE: {6:.3f} | ' \
                        'Returns: {7:.3f}'
-            self.logger.info(log_info.format(cur_date, profit, loss, cost, cash, holdings, roe, returns))
+            self.logger.warning(log_info.format(cur_date, profit, loss, cost, cash, holdings, roe, returns))
 
             self.strategy.after_trading()
 
@@ -232,11 +233,12 @@ class PredictorEngine(BaseEngine):
 
 
 if __name__ == '__main__':
-    from personae.contrib.strategy.strategy import RandomStrategy, SimpleReturnStrategy, HoldStrategy
+    from personae.contrib.strategy.strategy import HoldStrategy
     e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed',
                         start_date='2014-01-01',
-                        end_date='2016-01-01',
-                        cash=100000)
+                        end_date='2018-01-01',
+                        cash=100000,
+                        sh_level=logging.INFO)
     e.run(HoldStrategy())
     e.analyze()
     e.plot()

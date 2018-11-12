@@ -36,45 +36,51 @@ def rolling_ic(df: pd.DataFrame, key_a, key_b, window):
     return left_series.rolling(window=window).corr(right_series)
 
 
-name_func_args_pairs, windows = [], [5, 10, 30, 60, 120]
+def get_name_func_args_pairs(data_type='stock'):
 
-# 1. return.
-name_func_args_pairs.append(('RETURN_SHIFT_0', returns, ['CLOSE', 0]))
-name_func_args_pairs.append(('LABEL_0', returns, ['CLOSE', -2]))
+    close = 'ADJUST_PRICE' if data_type == 'stock' else 'CLOSE'
 
-# 2. close_volume_rolling_ic_window.
-for w in windows:
-    factor_name = 'CLOSE_VOLUME_IC_{}'.format(w)
-    name_func_args_pairs.append((factor_name, rolling_ic, ['CLOSE', 'VOLUME', w]))
+    name_func_args_pairs, windows = [], [5, 10, 30, 60, 120]
 
-for field in ['CLOSE', 'VOLUME']:
-    # 3. field_diff_window.
+    # 1. return.
+    name_func_args_pairs.append(('RETURN_SHIFT_0', returns, [close, 0]))
+    name_func_args_pairs.append(('LABEL_0', returns, [close, -2]))
+
+    # 2. adjust_price_volume_rolling_ic_window.
     for w in windows:
-        factor_name = '{}_DIFF_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, diff, [field, w]))
+        factor_name = '{}_VOLUME_IC_{}'.format(close, w)
+        name_func_args_pairs.append((factor_name, rolling_ic, [close, 'VOLUME', w]))
 
-    # 4. field_rolling_std_window.
-    for w in windows:
-        factor_name = '{}_STD_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, rolling_std, [field, w]))
+    for field in [close, 'VOLUME']:
+        # 3. field_diff_window.
+        for w in windows:
+            factor_name = '{}_DIFF_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, diff, [field, w]))
 
-    # 5. field_rolling_mean_window.
-    for w in windows:
-        factor_name = '{}_MEAN_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, rolling_mean, [field, w]))
+        # 4. field_rolling_std_window.
+        for w in windows:
+            factor_name = '{}_STD_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, rolling_std, [field, w]))
 
-    # 6. field_rolling_max_window.
-    for w in windows:
-        factor_name = '{}_MAX_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, rolling_max, [field, w]))
+        # 5. field_rolling_mean_window.
+        for w in windows:
+            factor_name = '{}_MEAN_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, rolling_mean, [field, w]))
 
-    # 7. field_rolling_min_window.
-    for w in windows:
-        factor_name = '{}_MIN_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, rolling_min, [field, w]))
+        # 6. field_rolling_max_window.
+        for w in windows:
+            factor_name = '{}_MAX_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, rolling_max, [field, w]))
 
-    # 8. field_rolling_quantile_num_window.
-    for w in windows:
-        factor_name = '{}_QUANTILE_25_{}'.format(field, w)
-        name_func_args_pairs.append((factor_name, rolling_quantile, [field, w, 0.25]))
+        # 7. field_rolling_min_window.
+        for w in windows:
+            factor_name = '{}_MIN_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, rolling_min, [field, w]))
+
+        # 8. field_rolling_quantile_num_window.
+        for w in windows:
+            factor_name = '{}_QUANTILE_25_{}'.format(field, w)
+            name_func_args_pairs.append((factor_name, rolling_quantile, [field, w, 0.25]))
+
+    return name_func_args_pairs
 

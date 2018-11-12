@@ -279,7 +279,7 @@ class LightGBMModel(BaseModel):
         self.model = gbm.train(params=parameters,
                                train_set=train_set,
                                verbose_eval=50,
-                               valid_sets=[validation_set],
+                               valid_sets=[train_set, validation_set],
                                evals_result=eval_result,
                                num_boost_round=self.boost_round,
                                early_stopping_rounds=self.early_stop_round,)

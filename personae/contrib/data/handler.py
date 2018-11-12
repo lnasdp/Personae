@@ -190,7 +190,7 @@ class PredictorDataHandler(BaseDataHandler):
         self.label_names = ['LABEL_0', 'ALPHA']
 
     def setup_label(self):
-        self.processed_df['ALPHA'] = self.processed_df['LABEL_0'].groupby(level=1).apply(lambda x: (x - x.mean()) / x.std())
+        self.processed_df['ALPHA'] = self.processed_df['LABEL_0'].groupby(level=0).apply(lambda x: (x - x.mean()) / x.std())
 
     def setup_feature_names(self):
         self.feature_names = list(set(self.processed_df.columns) - set(self.label_names))
