@@ -75,8 +75,16 @@ class StaticTrainer(BaseTrainer):
         TimeInspector.log_cost_time('Finished loading model. (Static)')
 
     def predict(self):
-        predict_scores = self.model.predict(x_test=self.data_handler.x_test)
-        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=predict_scores)
+        # Get predict scores.
+        y_predict = self.model.predict(x_test=self.data_handler.x_test)
+        # Get test label.
+        y_label = self.data_handler.y_test
+        # Calculate ic.
+        info = 'Finished get predict, ic: {}'
+        self.logger.warning(info.format(
+            np.corrcoef(y_predict, y_label)
+        ))
+        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_predict)
         return predict_scores
 
 

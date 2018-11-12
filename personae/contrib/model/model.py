@@ -25,6 +25,9 @@ class BaseModel(object):
         # Model save path.
         self.save_path = os.path.join(self.save_dir, self.name)
 
+        # Early stop round.
+        self.early_stop_round = kwargs.get('early_stop_round', 100)
+
     @abstractmethod
     def fit(self, **kwargs):
         pass
@@ -51,8 +54,7 @@ class BaseNNModel(BaseModel):
     def __init__(self, x_space, **kwargs):
         super(BaseNNModel, self).__init__(**kwargs)
 
-        # Session.
-        self.session = kwargs.get('session', tf.Session())
+        tf.reset_default_graph()
 
         # Input shape.
         self.x_space = x_space
@@ -71,14 +73,18 @@ class BaseNNModel(BaseModel):
 
         # Model persistence.
         self.saver = None
+        self.save_path = '{}.ckpt'.format(self.save_path)
         self.builder_signature = None
+
+        # Session.
+        self.session = None
 
         # Seq length.
         self.seq_length = kwargs.get('seq_length', 5)
         # Batch size.
         self.batch_size = kwargs.get('batch_size', 64)
         # Save step.
-        self.save_step = kwargs.get('save_step', 100)
+        self.save_step = kwargs.get('save_step', 20)
         # Train steps.
         self.train_steps = kwargs.get('train_steps', 3000)
         # Dropout prob.
@@ -92,10 +98,23 @@ class BaseNNModel(BaseModel):
         self.logger = get_logger('{}'.format(self.name).upper())
 
     def fit(self, x_train, y_train, x_validation, y_validation, **kwargs):
+        # Init vars.
+        self.session.run(tf.global_variables_initializer())
         # Init best validation loss.
         best_validation_loss = np.inf
+        # Set early stop.
+        early_stop = 0
         # Start iteration.
         for train_step in range(self.train_steps):
+            # Check if need early stop.
+            if early_stop > self.early_stop_round:
+                info = 'Train step: {0} | Early stopped, best validation loss: {1:.5f}.'
+                self.logger.warning(info.format(
+                    train_step + 1,
+                    best_validation_loss
+                ))
+                self.load()
+                break
             # Get batch.
             data_size = len(x_train)
             # Get mini batch.
@@ -120,20 +139,15 @@ class BaseNNModel(BaseModel):
                 # Update best validation loss if need.
                 if validation_loss < best_validation_loss:
                     best_validation_loss = validation_loss
+                    early_stop = 0
                     info = 'Train step: {0} | Best validation loss updated: {1:.5f}, save model.'
                     self.logger.warning(info.format(
                         train_step,
                         best_validation_loss
                     ))
                     self.save()
-                # Early stop if need.
-                if validation_loss * 0.8 > best_validation_loss:
-                    info = 'Train step: {0} | current validation loss is worse than 0.8 of the best, early stop.'
-                    self.logger.warning(info.format(
-                        train_step
-                    ))
-                    self.load()
-                    break
+                else:
+                    early_stop += 1
 
     def evaluate(self, x_input, y_input, **kwargs):
         loss = self.session.run(self.loss_func, feed_dict={
@@ -219,8 +233,6 @@ class MLPModel(BaseNNModel):
         optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.train_op = optimizer.minimize(self.loss_func)
 
-        self.session.run(tf.global_variables_initializer())
-
         # Builder.
         self.builder_signature = tf.saved_model.signature_def_utils.build_signature_def(
             inputs={
@@ -234,7 +246,8 @@ class MLPModel(BaseNNModel):
             method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
         )
 
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=1)
+        self.session = kwargs.get('session', tf.Session())
 
 
 class LightGBMModel(BaseModel):
@@ -249,9 +262,6 @@ class LightGBMModel(BaseModel):
 
         # Boost round.
         self.boost_round = kwargs.get('boost_round', 1000)
-
-        # Early stop round.
-        self.early_stop_round = kwargs.get('early_stop_round', 50)
 
         # Booster parameters.
         self.booster_parameters = kwargs

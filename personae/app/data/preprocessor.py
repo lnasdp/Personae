@@ -35,7 +35,7 @@ def merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock'):
     # 4. Concat and cache df.
     TimeInspector.set_time_mark()
     merged_data_path = os.path.join(merged_data_dir, '{}.pkl'.format(data_type))
-    df = pd.concat(dfs)  # type: pd.DataFrame
+    df = pd.concat(dfs, sort=False)  # type: pd.DataFrame
     df.to_pickle(merged_data_path)
     TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, merged_data_path))
 
@@ -122,17 +122,17 @@ if __name__ == '__main__':
     # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
     # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
-    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
+    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
 
     # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
     # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'
     # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/processed'
 
-    # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
-    # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'
-    # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
+    raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
+    merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'
+    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
 
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock')
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='index')
