@@ -44,6 +44,7 @@ def get_name_func_args_pairs(data_type='stock'):
 
     # 1. return.
     name_func_args_pairs.append(('RETURN_SHIFT_0', returns, [close, 0]))
+    # name_func_args_pairs.append(('LABEL_0', returns, [close, -2]))
     name_func_args_pairs.append(('LABEL_0', returns, [close, -2]))
 
     # 2. adjust_price_volume_rolling_ic_window.

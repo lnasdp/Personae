@@ -37,7 +37,7 @@ class DataConfig(object):
     def __init__(self, config: dict):
         self.handler_class = config.get('class', 'BaseDataHandler')
         self.handler_module = config.get('module', None)
-        self.handler_params = config
+        self.handler_params = config.get('params', dict())
 
 
 class ModelConfig(object):

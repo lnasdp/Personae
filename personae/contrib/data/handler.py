@@ -49,11 +49,14 @@ class BaseDataHandler(object):
         self.train_start_date = kwargs.get('train_start_date', '2005-01-01')
         self.train_end_date = kwargs.get('train_end_date', '2014-12-31')
 
-        self.validation_start_date = kwargs.get('validation_start_date', '2015-01-01')
-        self.validation_end_date = kwargs.get('validation_end_date', '2015-12-31')
+        self.validation_start_date = kwargs.get('validation_start_date', '2012-01-01')
+        self.validation_end_date = kwargs.get('validation_end_date', '2012-12-31')
 
         self.test_start_date = kwargs.get('test_start_date', '2015-01-01')
         self.test_end_date = kwargs.get('test_end_date', '2018-11-01')
+
+        # self.test_start_date = kwargs.get('test_start_date', '2012-01-01')
+        # self.test_end_date = kwargs.get('test_end_date', '2014-12-31')
 
         self.rolling_train_start_dates = []
         self.rolling_train_end_dates = []
@@ -186,7 +189,7 @@ class PredictorDataHandler(BaseDataHandler):
         self.processed_df = processed_df
 
     def setup_label_names(self):
-        self.label_name = 'LABEL_0'
+        self.label_name = 'ALPHA'
         self.label_names = ['LABEL_0', 'ALPHA']
 
     def setup_label(self):
@@ -258,12 +261,28 @@ class PredictorDataHandler(BaseDataHandler):
 
         return x_train, y_train, x_validation, y_validation, x_test, y_test
 
-    def get_normalized_data(self, x_train: np.ndarray, x_validation: np.ndarray, x_test: np.ndarray):
+    def get_normalized_data(self, x_train, x_validation, x_test):
         try:
+            # Fit scaler.
             self.scaler.fit(x_train)
-            x_train = self.scaler.transform(x_train)
-            x_validation = self.scaler.transform(x_validation)
-            x_test = self.scaler.transform(x_test)
+            # Get columns.
+            columns = x_train.columns
+            # Transform df.
+            x_train = pd.DataFrame(
+                index=x_train.index,
+                columns=columns,
+                data=self.scaler.transform(x_train)
+            )
+            x_validation = pd.DataFrame(
+                index=x_validation.index,
+                columns=columns,
+                data=self.scaler.transform(x_validation)
+            )
+            x_test = pd.DataFrame(
+                index=x_test.index,
+                columns=columns,
+                data=self.scaler.transform(x_test)
+            )
         except ValueError as error:
             raise error
         return x_train, x_validation, x_test

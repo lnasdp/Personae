@@ -48,7 +48,7 @@ class BaseModel(object):
 
 class BaseNNModel(BaseModel):
 
-    def __init__(self, x_space, y_space, **kwargs):
+    def __init__(self, x_space, **kwargs):
         super(BaseNNModel, self).__init__(**kwargs)
 
         # Session.
@@ -56,11 +56,11 @@ class BaseNNModel(BaseModel):
 
         # Input shape.
         self.x_space = x_space
-        self.y_space = y_space
+        self.y_space = 1
 
         # Input tensor.
         self.x_input = tf.placeholder(tf.float32, shape=[None, self.x_space], name='x_input')
-        self.y_input = tf.placeholder(tf.float32, shape=[None, self.y_space], name='y_input')
+        self.y_input = tf.placeholder(tf.float32, shape=[None, ], name='y_input')
 
         # Output tensor.
         self.y_predict = None
@@ -91,7 +91,7 @@ class BaseNNModel(BaseModel):
         # Logger.
         self.logger = get_logger('{}'.format(self.name).upper())
 
-    def fit(self, x_train, y_train, x_validate, y_validate):
+    def fit(self, x_train, y_train, x_validation, y_validation, **kwargs):
         # Init best validation loss.
         best_validation_loss = np.inf
         # Start iteration.
@@ -110,7 +110,7 @@ class BaseNNModel(BaseModel):
             # Save and early stop if need.
             if (train_step + 1) % self.save_step == 0:
                 # Evaluate validation set.
-                validation_loss = self.evaluate(x_validate, y_validate)
+                validation_loss = self.evaluate(x_validation, y_validation)
                 info = 'Train step: {0} | Reach checkpoint, train loss: {1:.5f}, validation loss: {2:.5f}'
                 self.logger.warning(info.format(
                     train_step + 1,
@@ -127,7 +127,7 @@ class BaseNNModel(BaseModel):
                     ))
                     self.save()
                 # Early stop if need.
-                if validation_loss > best_validation_loss * 0.8:
+                if validation_loss * 0.8 > best_validation_loss:
                     info = 'Train step: {0} | current validation loss is worse than 0.8 of the best, early stop.'
                     self.logger.warning(info.format(
                         train_step
@@ -156,7 +156,7 @@ class BaseNNModel(BaseModel):
             }
             builder.add_meta_graph_and_variables(
                 sess=self.session,
-                tag=[tf.saved_model.tag_constants.SERVING],
+                tags=[tf.saved_model.tag_constants.SERVING],
                 signature_def_map=builder_key_signature_map
             )
             builder.save()
@@ -207,6 +207,8 @@ class MLPModel(BaseNNModel):
                                          units=self.y_space,
                                          kernel_initializer=weight_initializer,
                                          name='y_predict')
+        self.y_predict = tf.reshape(self.y_predict, (-1, ))
+
         # Loss func.
         if loss_func == 'mse':
             self.loss_func = tf.losses.mean_squared_error(self.y_input, self.y_predict)

@@ -13,7 +13,8 @@ def get_logger(module_name,
                log_dir='/tmp/',
                enable_fh=False,
                sh_level=logging.WARNING,
-               fh_level=logging.INFO):
+               fh_level=logging.INFO,
+               **kwargs):
 
     # 1. If logger exist, return.
     if module_name in loggers_map:

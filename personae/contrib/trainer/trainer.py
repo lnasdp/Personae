@@ -24,6 +24,11 @@ class BaseTrainer(object):
         # Data handler.
         self.data_handler = data_handler
 
+        # Update params.
+        self.model_params.update({
+            "x_space": self.data_handler.x_train.shape[1],
+        })
+
         # Logger.
         self.logger = get_logger('TRAINER')
 
@@ -47,10 +52,10 @@ class StaticTrainer(BaseTrainer):
         # Get model.
         model = self.model_class(**self.model_params)  # type: BaseModel
         model.fit(
-            x_train=self.data_handler.x_train,
-            y_train=self.data_handler.y_train,
-            x_validation=self.data_handler.x_validation,
-            y_validation=self.data_handler.y_validation,
+            x_train=self.data_handler.x_train.values,
+            y_train=self.data_handler.y_train.values,
+            x_validation=self.data_handler.x_validation.values,
+            y_validation=self.data_handler.y_validation.values,
             w_train=self.data_handler.w_train,
             w_validation=self.data_handler.w_validation
         )
@@ -92,10 +97,10 @@ class RollingTrainer(BaseTrainer):
             # Get model.
             model = self.model_class(**self.model_params)  # type: BaseModel
             model.fit(
-                x_train=self.data_handler.x_train,
-                y_train=self.data_handler.y_train,
-                x_validation=self.data_handler.x_validation,
-                y_validation=self.data_handler.y_validation,
+                x_train=self.data_handler.x_train.values,
+                y_train=self.data_handler.y_train.values,
+                x_validation=self.data_handler.x_validation.values,
+                y_validation=self.data_handler.y_validation.values,
                 w_train=self.data_handler.w_train,
                 w_validation=self.data_handler.w_validation
             )

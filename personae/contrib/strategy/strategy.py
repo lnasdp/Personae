@@ -52,13 +52,13 @@ class MLTopKStrategy(BaseStrategy):
     def before_trading(self, **kwargs):
         pass
 
-    def handle_bar(self, bar: pd.DataFrame, cur_date, **kwargs):
+    def handle_bar(self, positions_dic: dict, cur_date, **kwargs):
         # Get top k.
         top_stock = self.predict_se.loc[cur_date].nlargest(self.top_k)
         # Get target positions.
-        positions = pd.Series(index=bar.index, data=0)
-        positions.loc[top_stock.index] = 5000
-        return positions
+        tar_positions = pd.Series(index=self.predict_se.index.levels[1], data=0)
+        tar_positions[top_stock.index] = 100
+        positions_dic[cur_date] = tar_positions
 
     def after_trading(self, **kwargs):
         pass
