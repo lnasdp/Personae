@@ -29,7 +29,7 @@ class MLTopKStrategy(BaseStrategy):
     def __init__(self, tar_positions_se: pd.Series, top_k=100, **kwargs):
         super(MLTopKStrategy, self).__init__(**kwargs)
         # Target positions se, shift for trading execution.
-        self.tar_positions_se = tar_positions_se.groupby(level=1).shift(-1).fillna(0)
+        self.tar_positions_se = tar_positions_se.groupby(level=1).shift(1).fillna(0)
         # Top k.
         self.top_k = top_k
 

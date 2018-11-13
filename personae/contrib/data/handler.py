@@ -189,7 +189,7 @@ class PredictorDataHandler(BaseDataHandler):
         self.processed_df = processed_df
 
     def setup_label_names(self):
-        self.label_name = 'ALPHA'
+        self.label_name = 'LABEL_0'
         self.label_names = ['LABEL_0', 'ALPHA']
 
     def setup_label(self):
@@ -254,6 +254,7 @@ class PredictorDataHandler(BaseDataHandler):
 
         x_test = df_test[self.feature_names]
         y_test = df_test[self.label_name]
+        # y_test = df_test['ADJUST_PRICE'].groupby(level='CODE').apply(lambda x: x.pct_change().shift(-2))
 
         # Normalize data if need.
         if self.normalize_data:

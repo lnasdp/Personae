@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def returns(df: pd.DataFrame, key, shift_window=0):
-    return df.shift(periods=shift_window)[key] / df.shift(periods=shift_window+1)[key] - 1
+    return df[key].pct_change().shift(shift_window)
 
 
 def diff(df: pd.DataFrame, key, window):

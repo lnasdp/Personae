@@ -52,6 +52,7 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
     # Calculate factors.
     TimeInspector.set_time_mark()
     for factor_name, calculator, args in factor.get_name_func_args_pairs(data_type):
+        # TODO - Bug.
         df[factor_name] = calculator(df, *args)
     TimeInspector.log_cost_time('Finished calculating factors')
 

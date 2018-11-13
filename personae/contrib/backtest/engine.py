@@ -64,7 +64,7 @@ class BaseEngine(object):
         if len(self.available_codes) < 1:
             raise ValueError('Available codes less than 1, please check data.')
 
-        if len(self.available_dates) < 3:
+        if len(self.available_dates) < 2:
             raise ValueError('Available dates less than 3, please check data.')
 
         # Backtest dates.
@@ -77,7 +77,6 @@ class BaseEngine(object):
         self.slippage = slippage
 
         self.cur_positions_dic = dict()
-        self.tar_positions_dic = dict()
         self.return_dic = dict()
         self.roe_dic = dict()
 
@@ -118,7 +117,6 @@ class BaseEngine(object):
 
         # Positions.
         self.cur_positions_dic[last_date] = pd.Series(index=self.available_codes, data=0)
-        self.tar_positions_dic[last_date] = pd.Series(index=self.available_codes, data=0)
 
         self.logger.warning('Start backtesting...')
 
@@ -143,22 +141,20 @@ class BaseEngine(object):
                 'codes': self.available_codes,
             })
 
+            # Get cur bar return, close.
+            cur_close = cur_bar['ADJUST_PRICE']
+
             # Get current positions (last date).
             cur_positions = self.cur_positions_dic[last_date]
-
-            # Update next tar positions.
-            self.tar_positions_dic[cur_date] = tar_positions
-
-            # Calculate positions diff.
-            positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
 
             # Update current positions.
             self.cur_positions_dic[cur_date] = tar_positions
 
-            # Get cur bar return, close.
-            cur_close = cur_bar['ADJUST_PRICE']
+            # Calculate positions diff.
+            positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
 
             # Calculate current holdings returns.
+
             holdings_return = np.sum(cur_positions * (cur_close - last_close))
 
             # Calculate adjusting cash.
@@ -171,6 +167,8 @@ class BaseEngine(object):
             loss_slippage = np.sum(positions_diff.abs() * self.slippage)
             loss_charge = np.sum(positions_diff.abs() * cur_close * self.charge)
             loss = loss_slippage + loss_charge
+
+            loss = 0
 
             # Calculate cash.
             cash -= loss
@@ -192,16 +190,17 @@ class BaseEngine(object):
                        'Profit: {2:.3f} | ' \
                        'Holdings: {3:.3f} | ' \
                        'RoE: {4:.3f} | ' \
-                       'Returns: {5:.3f}'
+                       'Returns: {5:.6f}'
+
             self.logger.warning(log_info.format(
                 cur_date,
                 cash,
-                holdings_adjusted_return + holdings_return,
+                holdings_return, #holdings_adjusted_return +
                 holdings,
-                roe, returns)
+                roe, returns*initial_cash)
             )
 
-            last_date, cur_date, last_bar = cur_date, self.get_next_date(), cur_bar
+            last_date, cur_date, last_close = cur_date, self.get_next_date(), cur_close
         # Update backtest end date.
         self.backtest_end_date = last_date
         TimeInspector.log_cost_time('Finished backtest.')
