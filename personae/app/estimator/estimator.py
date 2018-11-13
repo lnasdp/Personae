@@ -140,10 +140,10 @@ class Estimator(object):
             self.trainer.load()
 
         # Prediction.
-        predict_se = self.trainer.predict()
+        tar_positions_se = self.trainer.predict()
 
         # Strategy.
-        self.strategy = self.strategy_class(predict_se=predict_se,
+        self.strategy = self.strategy_class(tar_positions_se=tar_positions_se,
                                             **self.strategy_config.strategy_params)
 
         # Backtest engine.

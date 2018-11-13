@@ -24,30 +24,27 @@ class BaseEngine(object):
                  benchmark='sh000905',
                  **kwargs):
 
-        # 1. Data.
+        # Data dir.
         self.processed_data_dir = processed_data_dir
+
+        # Data loader.
         self.data_loader = None
+
+        # Data df.
         self.stock_df = None
         self.bench_df = None
 
-        self.kwargs = kwargs
-
-        # 2. Strategy.
+        # Strategy.
         self.strategy = None
 
-        # 3. Dates.
+        # Backtest range.
         self.start_date = start_date
         self.end_date = end_date
 
-        # 4. Trade setting.
-        self.cash = cash
-        self.charge = charge
-        self.slippage = slippage
-
-        # 5. Benchmark.
+        # Benchmark.
         self.benchmark = benchmark
 
-        # 6. Setup data.
+        # Setup data.
         TimeInspector.set_time_mark()
         self.setup_data_loader()
         TimeInspector.log_cost_time('Finished setup data loader.')
@@ -60,16 +57,31 @@ class BaseEngine(object):
         self.setup_bench_data()
         TimeInspector.log_cost_time('Finished setup index data.')
 
-        # 7. Iter dates.
+        # Backtest codes.
+        self.available_codes = self.stock_df.index.get_level_values(level=1).unique().tolist()
         self.available_dates = self.bench_df.index.get_level_values(level=0).unique().tolist()
+
+        if len(self.available_codes) < 1:
+            raise ValueError('Available codes less than 1, please check data.')
+
+        if len(self.available_dates) < 3:
+            raise ValueError('Available dates less than 3, please check data.')
+
+        # Backtest dates.
         self.iter_dates = iter(self.available_dates)
+        self.backtest_end_date = None
 
-        # 8. Backtest.
-        self.positions_dic = dict()
-        self.returns_se = pd.Series(index=self.available_dates, data=0.)
-        self.roe_se = pd.Series(index=self.available_dates, data=0.)
+        # Backtest trade info.
+        self.cash = cash
+        self.charge = charge
+        self.slippage = slippage
 
-        # 8. Logger.
+        self.cur_positions_dic = dict()
+        self.tar_positions_dic = dict()
+        self.return_dic = dict()
+        self.roe_dic = dict()
+
+        # Logger.
         self.logger = logger.get_logger('BACKTEST', **kwargs)
 
     @abstractmethod
@@ -86,102 +98,118 @@ class BaseEngine(object):
 
     def run(self, strategy):
 
+        # Strategy.
         self.strategy = strategy
 
-        self.logger.warning('Start backtest.')
+        # Iter dates.
+        self.iter_dates = iter(self.available_dates)
 
         # Cash.
         cash, initial_cash = self.cash, self.cash
 
-        # Dates.
+        # Cur date.
         cur_date = next(self.iter_dates)
+
+        # Last date.
         last_date = cur_date
+
+        # Last close
+        last_close = self.stock_df.loc(axis=0)[last_date]['ADJUST_PRICE']
+
+        # Positions.
+        self.cur_positions_dic[last_date] = pd.Series(index=self.available_codes, data=0)
+        self.tar_positions_dic[last_date] = pd.Series(index=self.available_codes, data=0)
+
+        self.logger.warning('Start backtesting...')
 
         TimeInspector.set_time_mark()
         while cur_date:
 
             # Get cur bar.
             try:
-                cur_stock_bar = self.stock_df.loc(axis=0)[cur_date, :]
+                cur_bar = self.stock_df.loc(axis=0)[cur_date]
             except KeyError:
-                # 1. Here, all stock cannot trade on this day, we should update positions.
-                self.positions_dic[cur_date] = self.positions_dic[last_date]
-                # 2. Update last date and current date.
+                # Here, all stock cannot trade on this day, we should update positions by last date.
+                self.cur_positions_dic[cur_date] = self.cur_positions_dic[last_date]
+                # Update last date and current date.
                 last_date, cur_date = cur_date, self.get_next_date()
-                # 3. Log and continue.
+                # Log and continue.
                 self.logger.info('All stock cannot trade on: {}, continue.'.format(cur_date))
                 continue
 
-            self.strategy.before_trading()
+            # Call handle bar.
+            tar_positions = self.strategy.handle_bar(**{
+                'cur_date': cur_date,
+                'codes': self.available_codes,
+            })
 
-            # Get cur bar return, close.
-            cur_stock_close = cur_stock_bar['ADJUST_PRICE'].reset_index('DATE', drop=True)
+            # Get current positions (last date).
+            cur_positions = self.cur_positions_dic[last_date]
 
-            # 3. Strategy handle bar, update target positions.
-            self.strategy.handle_bar(self.positions_dic, cur_date)
-
-            # if not isinstance(tar_positions, pd.Series):
-            #     raise TypeError('tar_positions should a instance of pd.series.')
-
-            # # 4. Update tar positions.
-            # self.positions_se.loc[cur_date, :] = pd.Series(index=pd.MultiIndex.from_product([[cur_date],
-            #                                                                                  tar_positions.index]),
-            #                                                data=tar_positions.values)
-
-            # 6. Calculate profit.
-            # profit = np.sum(cur_positions * cur_stock_return)
-
-            # Get current and target positions.
-            cur_positions = self.positions_dic[last_date]
-            tar_positions = self.positions_dic[cur_date]
+            # Update next tar positions.
+            self.tar_positions_dic[cur_date] = tar_positions
 
             # Calculate positions diff.
-            positions_diff = tar_positions - cur_positions  # type: pd.Series
-            positions_diff = positions_diff.fillna(value=0)
+            positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
+
+            # Update current positions.
+            self.cur_positions_dic[cur_date] = tar_positions
+
+            # Get cur bar return, close.
+            cur_close = cur_bar['ADJUST_PRICE']
+
+            # Calculate current holdings returns.
+            holdings_return = np.sum(cur_positions * (cur_close - last_close))
 
             # Calculate adjusting cash.
-
-            cash_adjust = np.sum((-positions_diff * cur_stock_close).fillna(value=0))
+            holdings_adjusted_return = np.sum((-positions_diff * cur_close).fillna(value=0))
 
             # Calculate holdings.
-            holdings = np.sum(tar_positions * cur_stock_close)
+            holdings = np.sum(tar_positions * cur_close)
 
             # Calculate loss.
             loss_slippage = np.sum(positions_diff.abs() * self.slippage)
-            loss_charge = np.sum(positions_diff.abs() * cur_stock_close * self.charge)
+            loss_charge = np.sum(positions_diff.abs() * cur_close * self.charge)
             loss = loss_slippage + loss_charge
 
             # Calculate cash.
             cash -= loss
-            cash += cash_adjust
+            cash += holdings_adjusted_return
+            cash += holdings_return
 
             # Calculate RoE.
             roe = (cash + holdings) / initial_cash
 
             # Update roe.
-            self.roe_se[cur_date] = roe
+            self.roe_dic[cur_date] = roe
 
-            # Update returns df.
-            returns = roe - self.roe_se[last_date]
-            self.returns_se[cur_date] = returns
+            # Update return.
+            returns = roe - self.roe_dic[last_date]
+            self.return_dic[cur_date] = returns
 
             log_info = 'Date: {0} | ' \
                        'Cash: {1:.3f} | ' \
-                       'Adjusts: {2:.3f} | ' \
+                       'Profit: {2:.3f} | ' \
                        'Holdings: {3:.3f} | ' \
                        'RoE: {4:.3f} | ' \
                        'Returns: {5:.3f}'
-            self.logger.warning(log_info.format(cur_date, cash, cash_adjust, holdings, roe, returns))
+            self.logger.warning(log_info.format(
+                cur_date,
+                cash,
+                holdings_adjusted_return + holdings_return,
+                holdings,
+                roe, returns)
+            )
 
-            self.strategy.after_trading()
-
-            last_date, cur_date = cur_date, self.get_next_date()
+            last_date, cur_date, last_bar = cur_date, self.get_next_date(), cur_bar
+        # Update backtest end date.
+        self.backtest_end_date = last_date
         TimeInspector.log_cost_time('Finished backtest.')
 
     def analyze(self):
         # Portfolio.
-        roe = self.roe_se.iloc[-1]
-        returns_se = self.returns_se
+        roe = self.roe_dic[self.backtest_end_date]
+        returns_se = pd.Series(self.return_dic)
         returns_mean = returns_se.mean()
         returns_std = returns_se.std()
         annual = returns_mean * 250
@@ -198,15 +226,15 @@ class BaseEngine(object):
 
     def plot(self):
         plt.figure()
-        self.roe_se.plot()
+        pd.Series(self.roe_dic).plot()
         plt.show()
 
     def get_next_date(self):
         try:
-            cur_date = next(self.iter_dates)
+            next_date = next(self.iter_dates)
         except StopIteration:
-            cur_date = None
-        return cur_date
+            next_date = None
+        return next_date
 
 
 class PredictorEngine(BaseEngine):
@@ -216,6 +244,9 @@ class PredictorEngine(BaseEngine):
 
     def setup_stock_data(self):
         self.stock_df = self.data_loader.load_data(codes='all', data_type='stock')
+        self.stock_df['ALPHA'] = self.stock_df['LABEL_0'].groupby(level=0).apply(
+            lambda x: (x - x.mean()) / x.std()
+        )
 
     def setup_bench_data(self):
         self.bench_df = self.data_loader.load_data(codes=[self.benchmark], data_type='index')
@@ -226,7 +257,7 @@ if __name__ == '__main__':
     e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed',
                         start_date='2014-01-01',
                         end_date='2018-01-01',
-                        cash=100000,
+                        cash=1000000,
                         sh_level=logging.INFO)
     e.run(HoldStrategy())
     e.analyze()
