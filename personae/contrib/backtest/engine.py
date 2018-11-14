@@ -153,12 +153,14 @@ class BaseEngine(object):
             # Calculate positions diff.
             positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
 
-            # Calculate current holdings returns.
+            # Calculate close diff.
+            close_diff = cur_close.sub(last_close, fill_value=0)
 
-            holdings_return = np.sum(cur_positions * (cur_close - last_close))
+            # Calculate current holdings returns.
+            holdings_return = np.sum(cur_positions * close_diff)
 
             # Calculate adjusting cash.
-            holdings_adjusted_return = np.sum((-positions_diff * cur_close).fillna(value=0))
+            holdings_adjusted_return = np.sum((-positions_diff * cur_close))
 
             # Calculate holdings.
             holdings = np.sum(tar_positions * cur_close)

@@ -40,7 +40,8 @@ class PredictorDataLoader(BaseDataLoader):
             # Processed data path.
             processed_data_path = os.path.join(processed_year_dir, '{}.pkl'.format(data_type))
             df.append(pd.read_pickle(processed_data_path))
-        df = pd.concat(df)
+        df = pd.concat(df)  # type: pd.DataFrame
+        df = df.sort_index(level=['DATE', 'CODE'])
         # 2. Slice.
         if codes == 'all':
             df = df.loc(axis=0)[self.start_date: self.end_date, :]

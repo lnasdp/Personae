@@ -250,10 +250,10 @@ class MLPModel(BaseNNModel):
         self.saver = tf.train.Saver()
 
 
-class LightGBMModel(BaseModel):
+class GBMModel(BaseModel):
 
     def __init__(self, loss_func='mse', **kwargs):
-        super(LightGBMModel, self).__init__(**kwargs)
+        super(GBMModel, self).__init__(**kwargs)
         # Model.
         self.model = None
 

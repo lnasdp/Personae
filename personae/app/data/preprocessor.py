@@ -56,7 +56,7 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
     df = pd.read_pickle(os.path.join(cache_data_dir, '{}.pkl'.format(data_type)))  # type: pd.DataFrame
 
     # Remove unused columns.
-    columns = list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'})
+    columns = sorted(list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'}))
     columns.sort()
     df = df[columns]
 
@@ -131,17 +131,17 @@ if __name__ == '__main__':
     # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
     # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
-    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
+    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
 
     # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
     # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'
     # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/processed'
 
-    # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
-    # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'
-    # processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
+    raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/raw'
+    merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/merged'
+    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
 
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock')
     merge_raw_df(raw_data_dir, merged_data_dir, data_type='index')

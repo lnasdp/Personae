@@ -13,7 +13,15 @@ from abc import abstractmethod
 
 class BaseDataHandler(object):
 
-    def __init__(self, **kwargs):
+    def __init__(self,
+                 processed_data_dir,
+                 train_start_date='2005-01-01',
+                 train_end_date='2014-12-31',
+                 validation_start_date='2015-01-01',
+                 validation_end_date='2015-12-31',
+                 test_start_date='2016-01-01',
+                 test_end_date='2018-01-01',
+                 **kwargs):
 
         # Df.
         self.processed_df = None
@@ -40,20 +48,20 @@ class BaseDataHandler(object):
         self.scaler = StandardScaler()
 
         # Raw data dir.
-        self.processed_data_dir = kwargs.get('processed_data_dir')
+        self.processed_data_dir = processed_data_dir
 
         # Normalize data.
         self.normalize_data = kwargs.get('normalize_data', False)
 
         # Dates.
-        self.train_start_date = kwargs.get('train_start_date', '2005-01-01')
-        self.train_end_date = kwargs.get('train_end_date', '2014-12-31')
+        self.train_start_date = train_start_date
+        self.train_end_date = train_end_date
 
-        self.validation_start_date = kwargs.get('validation_start_date', '2012-01-01')
-        self.validation_end_date = kwargs.get('validation_end_date', '2012-12-31')
+        self.validation_start_date = validation_start_date
+        self.validation_end_date = validation_end_date
 
-        self.test_start_date = kwargs.get('test_start_date', '2015-01-01')
-        self.test_end_date = kwargs.get('test_end_date', '2018-11-01')
+        self.test_start_date = test_start_date
+        self.test_end_date = test_end_date
 
         self.rolling_train_start_dates = []
         self.rolling_train_end_dates = []
@@ -176,7 +184,9 @@ class PredictorDataHandler(BaseDataHandler):
         if not self.processed_data_dir or not os.path.exists(self.processed_data_dir):
             raise ValueError('Invalid processed data dir: {}.'.format(self.processed_data_dir))
         # Here for data handler, the processed data for loader is raw data.
-        loader = PredictorDataLoader(self.processed_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
+        loader = PredictorDataLoader(self.processed_data_dir,
+                                     start_date=self.train_start_date,
+                                     end_date=self.test_end_date)
         # Load processed data.
         self.processed_df = loader.load_data()
 
@@ -188,7 +198,7 @@ class PredictorDataHandler(BaseDataHandler):
         pass
 
     def setup_feature_names(self):
-        self.feature_names = list(set(self.processed_df.columns) - set(self.label_names))
+        self.feature_names = sorted(list(set(self.processed_df.columns) - set(self.label_names)))
 
     def setup_static_data(self):
         split_data = self.get_split_data_by_dates(self.train_start_date,

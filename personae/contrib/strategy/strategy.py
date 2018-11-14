@@ -36,9 +36,11 @@ class MLTopKStrategy(BaseStrategy):
     def handle_bar(self, codes, cur_date, **kwargs):
         # Get top k.
         top_k_stock = self.tar_positions_se.loc[cur_date].nlargest(self.top_k)
+        down_k_stock = self.tar_positions_se.loc[cur_date].nsmallest(self.top_k)
         # Get target positions.
         tar_positions = pd.Series(index=codes, data=0)
-        tar_positions[top_k_stock.index] = 300
+        tar_positions[top_k_stock.index] = 1000
+        # tar_positions[down_k_stock.index] = -10000
         return tar_positions
 
 
