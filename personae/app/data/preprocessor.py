@@ -5,6 +5,7 @@ import glob
 import argparse
 import numpy as np
 import pandas as pd
+from itertools import repeat
 
 from personae.utility import factor
 from personae.utility.profiler import TimeInspector
@@ -12,24 +13,34 @@ from personae.utility.profiler import TimeInspector
 from concurrent.futures import ProcessPoolExecutor
 
 
-def _load_raw_df(csv_path):
+def _load_raw_df(csv_path, data_type='stock'):
+    # Read raw csv.
     df = pd.read_csv(csv_path, parse_dates=['date'], infer_datetime_format=True)
+    # Rename code, for index data.
     df = df.rename(columns={'index_code': 'code'})
+    # Upper case columns.
     df.columns = map(str.upper, df.columns)
+    # Set date as index, and sort it.
+    df = df.set_index('DATE').sort_index()
+    # Calculate factors.
+    for factor_name, calculator, args in factor.get_name_func_args_pairs(data_type):
+        df[factor_name] = calculator(df, *args)
+    # Reset index.
+    df = df.reset_index('DATE')
     return df
 
 
 def merge_raw_df(raw_data_dir, merged_data_dir, data_type='stock'):
-    # 1. Get csv dir.
+    # Get csv dir.
     csv_dir = os.path.join(raw_data_dir, data_type)
 
-    # 2. Get all csv paths.
+    # Get all csv paths.
     csv_paths = glob.glob(os.path.join(csv_dir, '*.csv'))
 
     # 3. Load raw dfs.
     TimeInspector.set_time_mark()
     with ProcessPoolExecutor(max_workers=16) as executor:
-        dfs = list(executor.map(_load_raw_df, csv_paths))
+        dfs = list(executor.map(_load_raw_df, csv_paths, repeat(data_type)))
     TimeInspector.log_cost_time('Finished loading raw {} df.'.format(data_type))
 
     # 4. Concat and cache df.
@@ -49,13 +60,6 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
     columns.sort()
     df = df[columns]
 
-    # Calculate factors.
-    TimeInspector.set_time_mark()
-    for factor_name, calculator, args in factor.get_name_func_args_pairs(data_type):
-        # TODO - Bug.
-        df[factor_name] = calculator(df, *args)
-    TimeInspector.log_cost_time('Finished calculating factors')
-
     # Replace inf with nan.
     TimeInspector.set_time_mark()
     df = df.replace([-np.inf, np.inf], np.nan)
@@ -69,8 +73,12 @@ def process_merged_df(cache_data_dir, processed_dir, data_type='stock'):
     df = df.set_index(['DATE', 'CODE'])
     df = df.sort_index(level=[0, 1])
 
+    # Calculate factors.
     TimeInspector.set_time_mark()
 
+    TimeInspector.log_cost_time('Finished calculating LABEL_1, ALPHA.')
+    df['LABEL_1'] = df['LABEL_0'].groupby(level='CODE').apply(lambda x: (x - x.mean()) / x.std())
+    TimeInspector.set_time_mark()
     # Due to bug for pickle in OSX, https://stackoverflow.com/questions/31468117/
     # df.to_pickle(processed_data_path)
 

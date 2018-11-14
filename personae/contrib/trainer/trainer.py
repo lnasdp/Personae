@@ -24,9 +24,13 @@ class BaseTrainer(object):
         # Data handler.
         self.data_handler = data_handler
 
-        # Update params.
+        # Update params about x, y space.
+        self.x_space = self.data_handler.x_train.shape[1]
+        self.y_space = self.data_handler.y_train.shape[1] if len(self.data_handler.y_train.shape) > 1 else 1
+
         self.model_params.update({
-            "x_space": self.data_handler.x_train.shape[1],
+            "x_space": self.x_space,
+            "y_space": self.y_space
         })
 
         # Logger.
@@ -53,9 +57,9 @@ class StaticTrainer(BaseTrainer):
         model = self.model_class(**self.model_params)  # type: BaseModel
         model.fit(
             x_train=self.data_handler.x_train.values,
-            y_train=self.data_handler.y_train.values,
+            y_train=self.data_handler.y_train.values.reshape((-1, self.y_space)),
             x_validation=self.data_handler.x_validation.values,
-            y_validation=self.data_handler.y_validation.values,
+            y_validation=self.data_handler.y_validation.values.reshape((-1, self.y_space)),
             w_train=self.data_handler.w_train,
             w_validation=self.data_handler.w_validation
         )
@@ -76,7 +80,7 @@ class StaticTrainer(BaseTrainer):
 
     def predict(self):
         # Get predict scores.
-        y_predict = self.model.predict(x_test=self.data_handler.x_test)
+        y_predict = self.model.predict(x_test=self.data_handler.x_test).reshape((-1, ))
         # Get test label.
         y_label = self.data_handler.y_test
         # Calculate ic.
@@ -107,9 +111,9 @@ class RollingTrainer(BaseTrainer):
             model = self.model_class(**self.model_params)  # type: BaseModel
             model.fit(
                 x_train=self.data_handler.x_train.values,
-                y_train=self.data_handler.y_train.values,
+                y_train=self.data_handler.y_train.values.reshape((-1, self.y_space)),
                 x_validation=self.data_handler.x_validation.values,
-                y_validation=self.data_handler.y_validation.values,
+                y_validation=self.data_handler.y_validation.values.reshape((-1, self.y_space)),
                 w_train=self.data_handler.w_train,
                 w_validation=self.data_handler.w_validation
             )

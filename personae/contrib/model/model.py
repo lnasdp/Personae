@@ -51,19 +51,17 @@ class BaseModel(object):
 
 class BaseNNModel(BaseModel):
 
-    def __init__(self, x_space, **kwargs):
+    def __init__(self, x_space, y_space, **kwargs):
         super(BaseNNModel, self).__init__(**kwargs)
-
-        tf.reset_default_graph()
 
         # Input shape.
         self.x_space = x_space
-        self.y_space = 1
+        self.y_space = y_space
 
         # Input tensor.
         with tf.variable_scope('input'):
             self.x_input = tf.placeholder(tf.float32, shape=[None, self.x_space], name='x_input')
-            self.y_input = tf.placeholder(tf.float32, shape=[None, ], name='y_input')
+            self.y_input = tf.placeholder(tf.float32, shape=[None, self.y_space], name='y_input')
 
         # Output tensor.
         self.y_predict = None
@@ -84,14 +82,14 @@ class BaseNNModel(BaseModel):
         # Batch size.
         self.batch_size = kwargs.get('batch_size', 64)
         # Save step.
-        self.save_step = kwargs.get('save_step', 20)
+        self.save_step = kwargs.get('save_step', 50)
         # Train steps.
         self.train_steps = kwargs.get('train_steps', 3000)
         # Dropout prob.
         self.dropout_prob = kwargs.get('dropout_prob', 0.6)
         # Learning rate.
         self.learning_rate = kwargs.get('learning_rate', 0.003)
-
+        # Save graph.
         self.save_graph = kwargs.get('save_graph', False)
 
         # Logger.
@@ -137,17 +135,17 @@ class BaseNNModel(BaseModel):
                     validation_loss)
                 )
                 # Update best validation loss if need.
-                if validation_loss < best_validation_loss:
+                if validation_loss > best_validation_loss:
+                    early_stop += 1
+                else:
                     best_validation_loss = validation_loss
                     early_stop = 0
                     info = 'Train step: {0} | Best validation loss updated: {1:.5f}, save model.'
                     self.logger.warning(info.format(
-                        train_step,
+                        train_step + 1,
                         best_validation_loss
                     ))
                     self.save()
-                else:
-                    early_stop += 1
 
     def evaluate(self, x_input, y_input, **kwargs):
         loss = self.session.run(self.loss_func, feed_dict={
@@ -223,7 +221,6 @@ class MLPModel(BaseNNModel):
                                              units=self.y_space,
                                              kernel_initializer=weight_initializer,
                                              name='y_predict')
-            self.y_predict = tf.reshape(self.y_predict, (-1, ))
 
         # Loss func.
         with tf.variable_scope('train'):
@@ -279,10 +276,10 @@ class LightGBMModel(BaseModel):
             w_validation=None):
 
         # 1. Prepare train set.
-        train_set = gbm.Dataset(x_train, label=y_train, weight=w_train)
+        train_set = gbm.Dataset(x_train, label=y_train.reshape((-1, )), weight=w_train)
 
         # 2. Prepare validation set.
-        validation_set = gbm.Dataset(x_validation, label=y_validation, weight=w_validation)
+        validation_set = gbm.Dataset(x_validation, label=y_validation.reshape((-1, )), weight=w_validation)
 
         # 3. Prepare parameters.
         parameters = self.booster_parameters.copy()

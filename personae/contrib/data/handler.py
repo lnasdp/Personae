@@ -55,9 +55,6 @@ class BaseDataHandler(object):
         self.test_start_date = kwargs.get('test_start_date', '2015-01-01')
         self.test_end_date = kwargs.get('test_end_date', '2018-11-01')
 
-        # self.test_start_date = kwargs.get('test_start_date', '2012-01-01')
-        # self.test_end_date = kwargs.get('test_end_date', '2014-12-31')
-
         self.rolling_train_start_dates = []
         self.rolling_train_end_dates = []
 
@@ -175,25 +172,20 @@ class BaseDataHandler(object):
 class PredictorDataHandler(BaseDataHandler):
 
     def setup_processed_data(self):
-
         # Check data dir.
         if not self.processed_data_dir or not os.path.exists(self.processed_data_dir):
             raise ValueError('Invalid processed data dir: {}.'.format(self.processed_data_dir))
-
         # Here for data handler, the processed data for loader is raw data.
         loader = PredictorDataLoader(self.processed_data_dir, start_date=self.train_start_date, end_date=self.test_end_date)
-
         # Load processed data.
-        processed_df = loader.load_data()  # type: pd.DataFrame
-
-        self.processed_df = processed_df
+        self.processed_df = loader.load_data()
 
     def setup_label_names(self):
         self.label_name = 'LABEL_0'
-        self.label_names = ['LABEL_0', 'ALPHA']
+        self.label_names = ['LABEL_0', 'LABEL_1']
 
     def setup_label(self):
-        self.processed_df['ALPHA'] = self.processed_df['LABEL_0'].groupby(level=0).apply(lambda x: (x - x.mean()) / x.std())
+        pass
 
     def setup_feature_names(self):
         self.feature_names = list(set(self.processed_df.columns) - set(self.label_names))
@@ -254,7 +246,6 @@ class PredictorDataHandler(BaseDataHandler):
 
         x_test = df_test[self.feature_names]
         y_test = df_test[self.label_name]
-        # y_test = df_test['ADJUST_PRICE'].groupby(level='CODE').apply(lambda x: x.pct_change().shift(-2))
 
         # Normalize data if need.
         if self.normalize_data:
