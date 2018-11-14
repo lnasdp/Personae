@@ -89,7 +89,7 @@ class StaticTrainer(BaseTrainer):
             np.corrcoef(y_predict, y_label)
         ))
         # TODO - Fix back.
-        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_label)
+        predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_predict)
         return predict_scores
 
 

@@ -24,10 +24,10 @@ class HoldStrategy(BaseStrategy):
         return pd.Series(index=codes, data=amount)
 
 
-class MLTopKStrategy(BaseStrategy):
+class MLTopKAmountStrategy(BaseStrategy):
 
     def __init__(self, tar_positions_se: pd.Series, top_k=100, **kwargs):
-        super(MLTopKStrategy, self).__init__(**kwargs)
+        super(MLTopKAmountStrategy, self).__init__(**kwargs)
         # Target positions se, shift for trading execution.
         self.tar_positions_se = tar_positions_se.groupby(level=1).shift(1).fillna(0)
         # Top k.
@@ -36,12 +36,13 @@ class MLTopKStrategy(BaseStrategy):
     def handle_bar(self, codes, cur_date, **kwargs):
         # Get top k.
         top_k_stock = self.tar_positions_se.loc[cur_date].nlargest(self.top_k)
-        down_k_stock = self.tar_positions_se.loc[cur_date].nsmallest(self.top_k)
         # Get target positions.
         tar_positions = pd.Series(index=codes, data=0)
         tar_positions[top_k_stock.index] = 1000
-        # tar_positions[down_k_stock.index] = -10000
         return tar_positions
+
+
+
 
 
 
