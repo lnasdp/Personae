@@ -125,7 +125,7 @@ class BaseEngine(object):
 
             # Get cur bar.
             try:
-                cur_bar = self.stock_df.loc(axis=0)[cur_date]
+                cur_bar = self.stock_df.loc(axis=0)[cur_date]  # type: pd.Series
             except KeyError:
                 # Here, all stock cannot trade on this day, we should update positions by last date.
                 self.cur_positions_dic[cur_date] = self.cur_positions_dic[last_date]
@@ -135,26 +135,39 @@ class BaseEngine(object):
                 self.logger.info('All stock cannot trade on: {}, continue.'.format(cur_date))
                 continue
 
+            # Get current positions (last date).
+            cur_positions = self.cur_positions_dic[last_date]
+
+            # Get current available codes.
+            cur_codes = cur_bar.index.get_level_values(level='CODE')
+
             # Call handle bar.
             tar_positions = self.strategy.handle_bar(**{
+                'codes': cur_codes,
                 'cur_date': cur_date,
-                'codes': self.available_codes,
+                'cur_positions': cur_positions,
             })
 
             # Get cur bar return, close.
             cur_close = cur_bar['ADJUST_PRICE']
 
-            # Get current positions (last date).
-            cur_positions = self.cur_positions_dic[last_date]
-
             # Update current positions.
             self.cur_positions_dic[cur_date] = tar_positions
 
-            # Calculate positions diff.
+            """
+            Calculate positions diff, 
+            1. For those codes that not exist on last day , we use `sub` with 0 as fill value.
+            2. For those codes that not exist on today, we keep those positions.
+            """
             positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
 
+            # Fill cur close with last close if codes do not exist on today, this cost 10ms.
+            close_concat = pd.concat([last_close, cur_close], axis=1, sort=False).fillna(method='ffill', axis=1)
+            close_concat.columns = ['LAST', 'CUR']
+            cur_close = close_concat.fillna(method='ffill', axis=1).loc(axis=1)['CUR']
+
             # Calculate close diff.
-            close_diff = cur_close.sub(last_close, fill_value=0)
+            close_diff = cur_close.sub(last_close)
 
             # Calculate current holdings returns.
             holdings_return = np.sum(cur_positions * close_diff)
@@ -197,7 +210,7 @@ class BaseEngine(object):
             self.logger.warning(log_info.format(
                 cur_date,
                 cash,
-                holdings_return, #holdings_adjusted_return +
+                holdings_return,
                 holdings,
                 roe, returns*initial_cash)
             )
