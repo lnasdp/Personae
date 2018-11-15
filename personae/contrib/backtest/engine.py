@@ -76,7 +76,8 @@ class BaseEngine(object):
         self.charge = charge
         self.slippage = slippage
 
-        self.cur_positions_dic = dict()
+        self.cur_positions_weight_dic = dict()
+        self.cur_positions_amount_dic = dict()
         self.return_dic = dict()
         self.roe_dic = dict()
 
@@ -116,7 +117,10 @@ class BaseEngine(object):
         last_close = self.stock_df.loc(axis=0)[last_date]['ADJUST_PRICE']
 
         # Positions.
-        self.cur_positions_dic[last_date] = pd.Series(index=self.available_codes, data=0)
+        self.cur_positions_weight_dic[last_date] = pd.Series(index=last_close.index.get_level_values(level='CODE'),
+                                                             data=0)
+        self.cur_positions_amount_dic[last_date] = pd.Series(index=last_close.index.get_level_values(level='CODE'),
+                                                             data=0)
 
         self.logger.warning('Start backtesting...')
 
@@ -128,38 +132,34 @@ class BaseEngine(object):
                 cur_bar = self.stock_df.loc(axis=0)[cur_date]  # type: pd.Series
             except KeyError:
                 # Here, all stock cannot trade on this day, we should update positions by last date.
-                self.cur_positions_dic[cur_date] = self.cur_positions_dic[last_date]
+                self.cur_positions_weight_dic[cur_date] = self.cur_positions_weight_dic[last_date]
                 # Update last date and current date.
                 last_date, cur_date = cur_date, self.get_next_date()
                 # Log and continue.
                 self.logger.info('All stock cannot trade on: {}, continue.'.format(cur_date))
                 continue
 
-            # Get current positions (last date).
-            cur_positions = self.cur_positions_dic[last_date]
+            # Get current positions weight and amount (last date).
+            cur_positions_weight = self.cur_positions_weight_dic[last_date]
+            cur_positions_amount = self.cur_positions_amount_dic[last_date]
 
             # Get current available codes.
             cur_codes = cur_bar.index.get_level_values(level='CODE')
 
             # Call handle bar.
-            tar_positions = self.strategy.handle_bar(**{
+            tar_positions_weight = self.strategy.handle_bar(**{
                 'codes': cur_codes,
                 'cur_date': cur_date,
-                'cur_positions': cur_positions,
+                'cur_positions_weight': cur_positions_weight,
             })
 
+            """
+            Calculate close diff, 
+            1. For those codes that not exist on last day , we have current close.
+            2. For those codes that not exist on today, we fill forward with last close.
+            """
             # Get cur bar return, close.
             cur_close = cur_bar['ADJUST_PRICE']
-
-            # Update current positions.
-            self.cur_positions_dic[cur_date] = tar_positions
-
-            """
-            Calculate positions diff, 
-            1. For those codes that not exist on last day , we use `sub` with 0 as fill value.
-            2. For those codes that not exist on today, we keep those positions.
-            """
-            positions_diff = tar_positions.sub(cur_positions, fill_value=0)  # type: pd.Series
 
             # Fill cur close with last close if codes do not exist on today, this cost 10ms.
             close_concat = pd.concat([last_close, cur_close], axis=1, sort=False).fillna(method='ffill', axis=1)
@@ -169,18 +169,39 @@ class BaseEngine(object):
             # Calculate close diff.
             close_diff = cur_close.sub(last_close)
 
+            # Calculate current holdings values.
+            cur_holding_values = np.sum(cur_positions_amount * cur_close)
+
+            # Calculate current total assets.
+            total_assets = cash + cur_holding_values
+
+            """
+            Calculate positions amount diff, 
+            1. For those codes that not exist on last day , we have current amount.
+            2. For those codes that not exist on today, we clear with last close.
+            """
+            tar_positions_amount = (tar_positions_weight * total_assets).floordiv(cur_close, fill_value=0)
+            # TODO - floor.
+
+            # Update current positions weight and amount.
+            self.cur_positions_amount_dic[cur_date] = tar_positions_amount
+            self.cur_positions_weight_dic[cur_date] = tar_positions_weight
+
+            # Calculate positions amount diff.
+            positions_amount_diff = tar_positions_amount.sub(cur_positions_amount, fill_value=0)  # type: pd.Series
+
             # Calculate current holdings returns.
-            holdings_return = np.sum(cur_positions * close_diff)
+            holdings_returns = np.sum(cur_positions_amount * close_diff)
 
             # Calculate adjusting cash.
-            holdings_adjusted_return = np.sum((-positions_diff * cur_close))
+            holdings_adjusted_return = np.sum((-positions_amount_diff * cur_close))
 
-            # Calculate holdings.
-            holdings = np.sum(tar_positions * cur_close)
+            # Calculate target holdings.
+            holdings = np.sum(tar_positions_amount * cur_close)
 
             # Calculate loss.
-            loss_slippage = np.sum(positions_diff.abs() * self.slippage)
-            loss_charge = np.sum(positions_diff.abs() * cur_close * self.charge)
+            loss_slippage = np.sum(positions_amount_diff.abs() * self.slippage)
+            loss_charge = np.sum(positions_amount_diff.abs() * cur_close * self.charge)
             loss = loss_slippage + loss_charge
 
             loss = 0
@@ -188,7 +209,7 @@ class BaseEngine(object):
             # Calculate cash.
             cash -= loss
             cash += holdings_adjusted_return
-            cash += holdings_return
+            cash += holdings_returns
 
             # Calculate RoE.
             roe = (cash + holdings) / initial_cash
@@ -210,9 +231,10 @@ class BaseEngine(object):
             self.logger.warning(log_info.format(
                 cur_date,
                 cash,
-                holdings_return,
+                holdings_returns,
                 holdings,
-                roe, returns*initial_cash)
+                roe,
+                returns * initial_cash)
             )
 
             last_date, cur_date, last_close = cur_date, self.get_next_date(), cur_close
@@ -267,12 +289,12 @@ class PredictorEngine(BaseEngine):
 
 
 if __name__ == '__main__':
-    from personae.contrib.strategy.strategy import HoldStrategy
+    from personae.contrib.strategy.strategy import EqualWeightHoldStrategy
     e = PredictorEngine(r'D:\Users\v-shuyw\data\ycz\data_sample\processed',
                         start_date='2014-01-01',
                         end_date='2018-01-01',
                         cash=1000000,
                         sh_level=logging.INFO)
-    e.run(HoldStrategy())
+    e.run(EqualWeightHoldStrategy())
     e.analyze()
     e.plot()
