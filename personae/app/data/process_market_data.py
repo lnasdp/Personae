@@ -127,13 +127,13 @@ if __name__ == '__main__':
     # merged_data_dir = args_parsed.merged_data_dir
     # processed_data_dir = args_parsed.processed_data_dir
 
-    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\raw'
-    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\merged'
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
+    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\merged'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\raw'
-    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\merged'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\data\raw'
+    # merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\data\merged'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\data\processed'
 
     # raw_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/raw'
     # merged_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data/merged'

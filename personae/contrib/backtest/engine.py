@@ -131,9 +131,12 @@ class BaseEngine(object):
             # Call handle bar.
             tar_positions_weight = self.strategy.handle_bar(**{
                 'codes': cur_codes,
+                'cur_bar': cur_bar,
                 'cur_date': cur_date,
                 'cur_positions_weight': cur_positions_weight,
             })
+
+            print(self.strategy.alpha)
 
             """
             Calculate close diff, 
