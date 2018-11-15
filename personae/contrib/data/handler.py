@@ -1,20 +1,17 @@
 # coding=utf-8
 
 import pandas as pd
-import numpy as np
-import os
+
 from sklearn.preprocessing import StandardScaler
-
-from personae.contrib.data.loader import PredictorDataLoader
-from personae.utility import profiler
-
 from abc import abstractmethod
+
+from personae.utility import profiler
 
 
 class BaseDataHandler(object):
 
     def __init__(self,
-                 processed_data_dir,
+                 processed_df,
                  train_start_date='2005-01-01',
                  train_end_date='2016-12-31',
                  validation_start_date='2017-01-01',
@@ -23,8 +20,7 @@ class BaseDataHandler(object):
                  test_end_date='2018-07-01',
                  **kwargs):
 
-        # Df.
-        self.processed_df = None
+        self.processed_df = processed_df
 
         # Labels and features.
         self.label_name = None
@@ -46,9 +42,6 @@ class BaseDataHandler(object):
 
         # Scaler.
         self.scaler = StandardScaler()
-
-        # Raw data dir.
-        self.processed_data_dir = processed_data_dir
 
         # Normalize data.
         self.normalize_data = kwargs.get('normalize_data', False)
@@ -75,10 +68,6 @@ class BaseDataHandler(object):
         self.rolling_iterator = None
         self.rolling_total_parts = 0
         self.rolling_period = kwargs.get('rolling_period', 30)
-
-        profiler.TimeInspector.set_time_mark()
-        self.setup_processed_data()
-        profiler.TimeInspector.log_cost_time('Finished loading processing data.')
 
         profiler.TimeInspector.set_time_mark()
         self.setup_label_names()
@@ -143,10 +132,6 @@ class BaseDataHandler(object):
         self.rolling_total_parts = len(self.rolling_train_start_dates)
 
     @abstractmethod
-    def setup_processed_data(self):
-        raise NotImplementedError('Implement this method to set processed data.')
-
-    @abstractmethod
     def setup_label_names(self):
         raise NotImplementedError('Implement this method to set label names.')
 
@@ -178,17 +163,6 @@ class BaseDataHandler(object):
 
 
 class PredictorDataHandler(BaseDataHandler):
-
-    def setup_processed_data(self):
-        # Check data dir.
-        if not self.processed_data_dir or not os.path.exists(self.processed_data_dir):
-            raise ValueError('Invalid processed data dir: {}.'.format(self.processed_data_dir))
-        # Here for data handler, the processed data for loader is raw data.
-        loader = PredictorDataLoader(self.processed_data_dir,
-                                     start_date=self.train_start_date,
-                                     end_date=self.test_end_date)
-        # Load processed data.
-        self.processed_df = loader.load_data()
 
     def setup_label_names(self):
         self.label_name = 'LABEL_1'
@@ -288,13 +262,3 @@ class PredictorDataHandler(BaseDataHandler):
         except ValueError as error:
             raise error
         return x_train, x_validation, x_test
-
-
-if __name__ == '__main__':
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data_sample\processed'
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\processed'
-    processed_data_dir = '/Users/shuyu/Desktop/Affair/Temp/data_tmp/processed'
-    h = PredictorDataHandler(processed_data_dir=processed_data_dir,
-                             normalize_data=True,
-                             drop_nan_columns=True)
-    print(h.x_train)

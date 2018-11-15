@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import pandas as pd
+import pickle
 import os
 
 from abc import abstractmethod
@@ -20,12 +21,13 @@ class BaseDataLoader(object):
 
 class PredictorDataLoader(BaseDataLoader):
 
-    def __init__(self, data_dir, **kwargs):
+    def __init__(self, data_dir, market_dir, **kwargs):
         super(PredictorDataLoader, self).__init__(**kwargs)
-        # 2. data dir
+        # data dir
         self.data_dir = data_dir
+        self.market_dir = market_dir
 
-        # 4. Dates.
+        # Dates.
         self.start_date = kwargs.get('start_date', '2005-01-01')
         self.end_date = kwargs.get('end_date', '2018-11-01')
 
@@ -45,6 +47,11 @@ class PredictorDataLoader(BaseDataLoader):
         # 2. Slice.
         if codes == 'all':
             df = df.loc(axis=0)[self.start_date: self.end_date, :]
+        elif codes == 'csi500':
+            codes = pd.read_pickle(
+                os.path.join(self.market_dir, 'csi500.pkl')
+            )
+            df = df.loc(axis=0)[self.start_date: self.end_date, codes]
         else:
             df = df.loc(axis=0)[self.start_date: self.end_date, codes]
         TimeInspector.log_cost_time('Finished loading data df.')
