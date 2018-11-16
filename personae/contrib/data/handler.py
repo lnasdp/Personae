@@ -86,6 +86,7 @@ class BaseDataHandler(object):
         profiler.TimeInspector.log_cost_time('Finished loading static data.')
 
         profiler.TimeInspector.set_time_mark()
+        self.split_rolling_dates()
         self.setup_rolling_data()
         profiler.TimeInspector.log_cost_time('Finished loading rolling data.')
 

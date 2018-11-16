@@ -23,7 +23,7 @@ class BaseModel(object):
         self.save_dir = kwargs.get('save_dir', '/tmp/')
 
         # Model save path.
-        self.save_path = os.path.join(self.save_dir, self.name)
+        self.save_path = None
 
         # Early stop round.
         self.early_stop_round = kwargs.get('early_stop_round', 100)
@@ -73,6 +73,9 @@ class BaseNNModel(BaseModel):
         # Model persistence.
         self.saver = None
         self.builder_signature = None
+
+        # Model save path.
+        self.save_path = os.path.join(self.save_dir, 'checkpoint', self.name)
 
         # Session.
         self.session = None
@@ -255,7 +258,9 @@ class GBMModel(BaseModel):
     def __init__(self, loss_func='mse', **kwargs):
         super(GBMModel, self).__init__(**kwargs)
         # Model.
+        self.name = 'GBM'
         self.model = None
+        self.save_path = os.path.join(self.save_dir, 'model.txt')
 
         # Loss func.
         self.loss_func = loss_func

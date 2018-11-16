@@ -64,7 +64,9 @@ class StaticTrainer(BaseTrainer):
             w_validation=self.data_handler.w_validation
         )
         # Save model.
+        TimeInspector.set_time_mark()
         model.save()
+        TimeInspector.log_cost_time('Finished saving model.')
         # Set model.
         self.model = model
         TimeInspector.log_cost_time('Finished training model. (Static)')
@@ -84,11 +86,10 @@ class StaticTrainer(BaseTrainer):
         # Get test label.
         y_label = self.data_handler.y_test
         # Calculate ic.
-        info = 'Finished get predict, ic: \n{}'
+        info = 'Finished static predicting, IC: {0:.5f}.'
         self.logger.warning(info.format(
-            np.corrcoef(y_predict, y_label)
+            np.corrcoef(y_predict, y_label)[0][1]
         ))
-        # TODO - Fix back.
         predict_scores = pd.Series(index=self.data_handler.x_test.index, data=y_predict)
         return predict_scores
 
@@ -100,6 +101,8 @@ class RollingTrainer(BaseTrainer):
         self.date_model_map = dict()
 
     def train(self):
+        # Get rolling iterator.
+        self.data_handler.rolling_iterator = self.data_handler.setup_rolling_data()
         # Get total data parts.
         total_data_parts = self.data_handler.rolling_total_parts
         info = 'Total numbers of model are: {}, start training models...'
@@ -118,14 +121,14 @@ class RollingTrainer(BaseTrainer):
                 w_validation=self.data_handler.w_validation
             )
             # Save model.
-            model.name = '{}_{}'.format(model.name, index)
+            model.save_path = '{}_{}'.format(model.save_path, index)
+            TimeInspector.set_time_mark()
             model.save()
+            TimeInspector.log_cost_time('Finished saving model.')
             # Build date - model map.
             self.date_model_map[self.data_handler.rolling_test_end_dates[index]] = model
             info = 'Total numbers of model are: {},' ' finished training model: {}.'
             TimeInspector.log_cost_time(info.format(total_data_parts, index + 1))
-        # Reset rolling data.
-        self.data_handler.setup_rolling_data()
 
     def load(self):
         # Get total data parts.
@@ -139,15 +142,24 @@ class RollingTrainer(BaseTrainer):
             self.date_model_map[self.data_handler.rolling_test_end_dates[index]] = model
 
     def predict(self):
+        # Reset rolling data.
+        self.data_handler.rolling_iterator = self.data_handler.setup_rolling_data()
         predict_scores = []
         for index, _ in enumerate(self.data_handler.rolling_iterator):
             # Get model.
             model = self.date_model_map[self.data_handler.rolling_test_end_dates[index]]
-            # Get predict score.
-            _predict_scores = model.predict(x_test=self.data_handler.x_test)
-            _predict_scores = pd.Series(index=self.data_handler.x_test.index, data=predict_scores)
+            # Get predict scores.
+            y_predict = model.predict(x_test=self.data_handler.x_test).reshape((-1,))
+            # Get test label.
+            y_label = self.data_handler.y_test
+            # Calculate ic.
+            info = 'Finished rolling predicting for model: {0}, IC: {1:.5f}.'
+            self.logger.warning(info.format(
+                index,
+                np.corrcoef(y_predict, y_label)[0][1]
+            ))
             # Add predict score to scores.
-            predict_scores.append(_predict_scores)
+            predict_scores.append(pd.Series(index=self.data_handler.x_test.index, data=y_predict))
         # Concat result.
         predict_scores = pd.concat(predict_scores)
         return predict_scores
