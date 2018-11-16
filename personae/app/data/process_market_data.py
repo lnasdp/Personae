@@ -33,7 +33,6 @@ def _load_raw_df(csv_path, _data_type='stock'):
 
 def process_market_data(
         raw_data_dir,
-        merged_data_dir,
         processed_data_dir,
         data_type='stock',
         market_type='all',
@@ -62,14 +61,14 @@ def process_market_data(
     TimeInspector.log_cost_time('Finished loading raw {} df, market type: {}'.format(data_type, market_type))
 
     # Concat and cache df.
-    TimeInspector.set_time_mark()
-    merged_data_path = os.path.join(merged_data_dir, '{}_{}.pkl'.format(market_type, data_type))
+    # TimeInspector.set_time_mark()
+    # merged_data_path = os.path.join(merged_data_dir, '{}_{}.pkl'.format(market_type, data_type))
     df = pd.concat(dfs, sort=False)  # type: pd.DataFrame
-    df.to_pickle(merged_data_path)
-    TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, merged_data_path))
+    # df.to_pickle(merged_data_path)
+    # TimeInspector.log_cost_time('Finished merging raw {} df to {}.'.format(data_type, merged_data_path))
 
     # Load merged df.
-    df = pd.read_pickle(merged_data_path)  # type: pd.DataFrame
+    # df = pd.read_pickle(merged_data_path)  # type: pd.DataFrame
 
     # Remove unused columns.
     columns = sorted(list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'}))
@@ -150,27 +149,23 @@ args_parser.add_argument(
     help='Indicate where to save preprocessed data.'
 )
 
-args_parser.add_argument(
-    '-m',
-    '--merged_data_dir',
-    type=str,
-    required=True,
-    help='Indicate where to save merged data.'
-)
-
 
 def main(args):
 
     market_type = 'csi500'
-    market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
-    merged_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\merged'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
+    # market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
+
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
+
+    market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
+
+    raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
+    processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
 
     process_market_data(
         raw_data_dir,
-        merged_data_dir,
         processed_data_dir,
         data_type='stock',
         market_type=market_type,
@@ -179,7 +174,6 @@ def main(args):
 
     process_market_data(
         raw_data_dir,
-        merged_data_dir,
         processed_data_dir,
         data_type='index'
     )

@@ -86,7 +86,7 @@ class StaticTrainer(BaseTrainer):
         # Get test label.
         y_label = self.data_handler.y_test
         # Calculate ic.
-        info = 'Finished static predicting, IC: {0:.5f}.'
+        info = 'Finished getting static predicting, IC: {0:.5f}.'
         self.logger.warning(info.format(
             np.corrcoef(y_predict, y_label)[0][1]
         ))
@@ -153,7 +153,7 @@ class RollingTrainer(BaseTrainer):
             # Get test label.
             y_label = self.data_handler.y_test
             # Calculate ic.
-            info = 'Finished rolling predicting for model: {0}, IC: {1:.5f}.'
+            info = 'Finished getting rolling predicting for model: {0}, IC: {1:.5f}.'
             self.logger.warning(info.format(
                 index,
                 np.corrcoef(y_predict, y_label)[0][1]

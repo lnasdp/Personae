@@ -23,8 +23,12 @@ def process_raw_df(raw_csv_path, processed_csv_path):
 
 
 def main():
-    raw_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\raw\csi500.csv'
-    processed_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\processed\csi500.pkl'
+    # raw_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\raw\csi500.csv'
+    # processed_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\processed\csi500.pkl'
+
+    raw_csv_path = "/Users/shuyu/Desktop/Affair/Data/predictor/market/raw/csi500.csv"
+    processed_csv_path = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed/csi500.pkl"
+
     process_raw_df(raw_csv_path, processed_csv_path)
 
 

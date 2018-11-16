@@ -107,6 +107,9 @@ class BaseEngine(object):
             data=0
         )
 
+        self.return_dic[cur_date] = 0.
+        self.roe_dic[cur_date] = 1.
+
         # Last date.
         last_date, cur_date = cur_date, self.get_next_date()
 
