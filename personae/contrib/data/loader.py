@@ -21,40 +21,33 @@ class BaseDataLoader(object):
 
 class PredictorDataLoader(BaseDataLoader):
 
-    def __init__(self, data_dir, market_dir, **kwargs):
-        super(PredictorDataLoader, self).__init__(**kwargs)
-        # data dir
-        self.data_dir = data_dir
-        self.market_dir = market_dir
-
-        # Dates.
-        self.start_date = kwargs.get('start_date', '2005-01-01')
-        self.end_date = kwargs.get('end_date', '2018-11-01')
-
-    def load_data(self, codes='all', data_type='stock'):
+    @classmethod
+    def load_data(
+            cls,
+            data_dir,
+            market_type='all',
+            data_type='stock',
+            start_date='2005-01-01',
+            end_date='2018-11-01'
+    ):
         TimeInspector.set_time_mark()
         # 1. Load pkl.
         df = []
-        date_range = pd.date_range(self.start_date, self.end_date, freq='AS')
+        date_range = pd.date_range(start_date, end_date, freq='AS')
         for cur_date in date_range:
             # Processed year dir.
-            processed_year_dir = os.path.join(self.data_dir, str(cur_date.year))
+            processed_year_dir = os.path.join(data_dir, str(cur_date.year))
             # Processed data path.
-            processed_data_path = os.path.join(processed_year_dir, '{}.pkl'.format(data_type))
+            processed_data_path = os.path.join(processed_year_dir, '{}_{}.pkl'.format(market_type, data_type))
             df.append(pd.read_pickle(processed_data_path))
         df = pd.concat(df)  # type: pd.DataFrame
         df = df.sort_index(level=['DATE', 'CODE'])
         # 2. Slice.
-        if codes == 'all':
-            df = df.loc(axis=0)[self.start_date: self.end_date, :]
-        elif codes == 'csi500':
-            codes = pd.read_pickle(
-                os.path.join(self.market_dir, 'csi500.pkl')
-            )
-            df = df.loc(axis=0)[self.start_date: self.end_date, codes]
-        else:
-            df = df.loc(axis=0)[self.start_date: self.end_date, codes]
-        TimeInspector.log_cost_time('Finished loading data df.')
+        df = df.loc(axis=0)[start_date: end_date, :]
+        TimeInspector.log_cost_time('Finished loading df, market type: {}, data type: {}.'.format(
+            market_type,
+            data_type
+        ))
         # 3. Return.
         return df
 

@@ -105,6 +105,8 @@ class BaseEngine(object):
 
         self.logger.warning('Start backtesting...')
 
+        alpha = 1.0
+
         TimeInspector.set_time_mark()
         while cur_date:
 
@@ -136,7 +138,9 @@ class BaseEngine(object):
                 'cur_positions_weight': cur_positions_weight,
             })
 
-            print(self.strategy.alpha)
+            s = (cur_bar.loc[self.strategy.tar_position_scores[last_date].nlargest(50).index]['LABEL_0'].mean() - cur_bar['LABEL_0'].mean()) / 2
+            alpha += s
+            print(alpha)
 
             """
             Calculate close diff, 
@@ -261,13 +265,17 @@ if __name__ == '__main__':
     from personae.contrib.data.loader import PredictorDataLoader
     from personae.contrib.strategy.strategy import EqualWeightHoldStrategy
 
-    loader = PredictorDataLoader(
+    stock_df = PredictorDataLoader.load_data(
         data_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\data\processed',
-        market_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\market\processed'
+        market_type='csi500',
+        data_type='stock'
     )
 
-    stock_df = loader.load_data('csi500', data_type='stock')
-    bench_df = loader.load_data('all', data_type='index')
+    bench_df = PredictorDataLoader.load_data(
+        data_dir=r'D:\Users\v-shuyw\data\ycz\data_sample\market_data\data\processed',
+        market_type='all',
+        data_type='index'
+    )
 
     e = BaseEngine(
         stock_df=stock_df,

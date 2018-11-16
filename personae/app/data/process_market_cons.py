@@ -1,6 +1,5 @@
 # coding=utf-8
 
-import argparse
 import pandas as pd
 
 
@@ -23,8 +22,11 @@ def process_raw_df(raw_csv_path, processed_csv_path):
     se.to_pickle(processed_csv_path)
 
 
-if __name__ == '__main__':
-    raw_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\raw\csi500\000905cons.csv'
-    processed_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\processed\csi500\csi500.pkl'
+def main():
+    raw_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\raw\csi500.csv'
+    processed_csv_path = r'D:\Users\v-shuyw\data\ycz\data_sample\market\processed\csi500.pkl'
     process_raw_df(raw_csv_path, processed_csv_path)
 
+
+if __name__ == '__main__':
+    main()

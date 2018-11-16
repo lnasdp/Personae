@@ -34,26 +34,28 @@ class MLTopKEqualWeightStrategy(BaseStrategy):
         # Margin.
         self.margin = margin
 
-        # TODO - TEST
-        self.alpha = 1.
+    def handle_bar(self, codes, cur_date, cur_positions_weight, **kwargs):
+        # Get prediction.
+        scores = self.tar_position_scores.loc[cur_date]
+        # Get margin stocks.
+        margin_stocks = scores.nlargest(self.margin)
+        # Get current stocks.
+        cur_stocks = cur_positions_weight[cur_positions_weight > 0]
+        # Get current stocks index in and out margin.
+        cur_stocks_in_margin_index = margin_stocks.index.isin(cur_stocks)
+        cur_stocks_not_in_margin_index = ~cur_stocks_in_margin_index
+        # Get top k stocks.
+        top_k_stocks = margin_stocks.nlargest(self.top_k)
+        # Get hold stocks.
+        hold_stocks = margin_stocks[cur_stocks_in_margin_index]
+        # Get buy stocks.
+        buy_stocks = margin_stocks[cur_stocks_not_in_margin_index]
 
-    def handle_bar(self, codes, cur_date, cur_bar, cur_positions_weight, **kwargs):
-        # Get margin stock.
-        margin_stock = self.tar_position_scores.loc[cur_date].nlargest(self.margin)
-        # Get keep stock.
-        keep_stock_index = margin_stock.index.intersection(cur_positions_weight.index)
-        # Get top k stock.
-        top_k_stock = margin_stock.nlargest(self.top_k)
         # Get weights.
-        weight = 1 / (len(keep_stock_index) + self.top_k)
+        weight = 1 / (len(top_k_stocks) + self.top_k)
         # Get target positions.
         tar_positions_weight = pd.Series(index=codes, data=0)
-        tar_positions_weight[top_k_stock.index] = weight
-        tar_positions_weight[margin_stock.index] = weight
-
-        # TODO - TEST
-        self.alpha += cur_bar['LABEL_0'].nlargest(self.top_k).mean() - cur_bar['LABEL_0'].mean()/ 2
-
+        tar_positions_weight[top_k_stocks.index] = weight
         return tar_positions_weight
 
 

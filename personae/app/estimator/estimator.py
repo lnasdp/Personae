@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import yaml
+import copy
 import argparse
 import importlib
 
@@ -103,7 +104,6 @@ class Estimator(object):
         self.backtest_engine_config = backtest_engine_config
 
         # Loader.
-        self.data_loader = None
         self.data_loader_class = self._load_class_with_module(self.loader_config.loader_class,
                                                               self.loader_config.loader_module,
                                                               'personae.contrib.data.loader')
@@ -150,12 +150,21 @@ class Estimator(object):
 
     def run(self):
         # Data loader.
-        self.data_loader = self.data_loader_class(**self.loader_config.loader_params)
-
         # Data.
-        stock_df = self.data_loader.load_data(
-            codes=self.loader_config.loader_params.get('market', 'all'),
+        stock_df = self.data_loader_class.load_data(
             data_type='stock',
+            **self.loader_config.loader_params
+        )
+
+        bench_loader_params = copy.deepcopy(self.loader_config.loader_params)
+        bench_loader_params.update({
+            'market_type': 'all',
+        })
+
+        # Bench df.
+        bench_df = self.data_loader_class.load_data(
+            data_type='index',
+            **bench_loader_params,
         )
 
         # Data handler.
@@ -190,12 +199,6 @@ class Estimator(object):
         self.strategy = self.strategy_class(
             tar_position_scores=tar_position_scores,
             **self.strategy_config.strategy_params
-        )
-
-        # Bench df.
-        bench_df = self.data_loader.load_data(
-            codes=self.backtest_engine_config.backtest_engine_params.get('bench', 'all'),
-            data_type='index',
         )
 
         # Backtest engine.

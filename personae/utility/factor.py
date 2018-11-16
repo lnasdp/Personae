@@ -40,7 +40,7 @@ def get_name_func_args_pairs(data_type='stock'):
 
     close = 'ADJUST_PRICE' if data_type == 'stock' else 'CLOSE'
 
-    name_func_args_pairs, windows = [], [3, 5, 10, 20, 30, 60, 120]
+    name_func_args_pairs, windows = [], [3, 5, 10, 20, 30, 60]
 
     # 1. return.
     name_func_args_pairs.append(('RETURN', returns, [close, 0]))
@@ -51,7 +51,12 @@ def get_name_func_args_pairs(data_type='stock'):
         factor_name = '{}_VOLUME_IC_{}'.format(close, w)
         name_func_args_pairs.append((factor_name, rolling_ic, [close, 'VOLUME', w]))
 
-    for field in [close, 'VOLUME']:
+    if data_type == 'stock':
+        fields = ['ADJUST_PRICE', 'VOLUME', 'CHANGE', 'MONEY']
+    else:
+        fields = ['CLOSE', 'VOLUME']
+
+    for field in fields:
         # 3. field_diff_window.
         for w in windows:
             factor_name = '{}_DIFF_{}'.format(field, w)
