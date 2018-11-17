@@ -24,8 +24,8 @@ if __name__ == '__main__':
     e = BaseEngine(
         stock_df=stock_df,
         bench_df=bench_df,
-        start_date='2014-01-01',
-        end_date='2018-01-01',
+        start_date='2015-07-01',
+        end_date='2017-07-01',
         cash=1000000,
         sh_level=logging.INFO)
 
