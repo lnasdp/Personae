@@ -25,7 +25,7 @@ class BaseEngine(object):
 
         # Data df.
         self.stock_df = stock_df.loc(axis=0)[start_date: end_date, :]
-        self.bench_df = bench_df.loc(axis=0)[start_date: end_date, :]
+        self.bench_df = bench_df.loc(axis=0)[start_date: end_date, benchmark]
 
         # Strategy.
         self.strategy = None
@@ -33,9 +33,6 @@ class BaseEngine(object):
         # Backtest range.
         self.start_date = start_date
         self.end_date = end_date
-
-        # Benchmark.
-        self.benchmark = benchmark
 
         # Backtest codes.
         self.available_codes = self.stock_df.index.get_level_values(level=1).unique().tolist()
@@ -59,8 +56,12 @@ class BaseEngine(object):
 
         self.positions_weight_dic = dict()
         self.positions_amount_dic = dict()
-        self.return_dic = dict()
         self.roe_dic = dict()
+        self.return_dic = dict()
+        self.total_assets_dic = dict()
+
+        self.bench_return_se = self.bench_df['CLOSE'].reset_index('CODE', drop=True).pct_change().fillna(0)
+        self.bench_roe_se = (self.bench_return_se + 1).cumprod()
 
         # Logger.
         self.logger = logger.get_logger('BACKTEST', **kwargs)
@@ -93,6 +94,7 @@ class BaseEngine(object):
             data=0
         )
 
+        self.total_assets_dic[cur_date] = cash
         self.return_dic[cur_date] = 0.
         self.roe_dic[cur_date] = 1.
 
@@ -130,16 +132,12 @@ class BaseEngine(object):
             # Forward fill close.
             cur_close = self._forward_fill_cur_close(cur_close, last_close)
 
-            # Call handle bar.
-            tar_positions_weight = self.strategy.handle_bar(**{
-                'codes': cur_codes,
-                'cur_bar': cur_bar,
-                'cur_date': cur_date,
-                'cur_positions_weight': cur_positions_weight,
-            })
-
-            # Check target positions weight.
-            self.check_tar_positions_weight(tar_positions_weight)
+            # Get profit.
+            profit = self._calculate_profit(
+                cur_positions_amount,
+                cur_close,
+                last_close
+            )
 
             # Get holdings value.
             holdings_value = self._calculate_holdings_value(cur_positions_amount, cur_close)
@@ -147,12 +145,19 @@ class BaseEngine(object):
             # Get total assets.
             total_assets = cash + holdings_value
 
-            # Get profit.
-            profit = self._calculate_profit(
-                cur_positions_amount,
-                cur_close,
-                last_close
-            )
+            # Call handle bar.
+            tar_positions_weight = self.strategy.handle_bar(**{
+                'codes': cur_codes,
+                'cur_date': cur_date,
+                'cur_close': cur_close,
+                'cur_total_assets': total_assets,
+                'cur_positions_weight': cur_positions_weight,
+                'cur_positions_amount': cur_positions_amount,
+
+            })
+
+            # Check target positions weight.
+            self.check_tar_positions_weight(tar_positions_weight)
 
             # Forward fill target positions weight.
             tar_positions_weight = self._forward_fill_tar_positions_weight(tar_positions_weight, cur_positions_weight)
@@ -176,8 +181,8 @@ class BaseEngine(object):
             )
 
             # Update total assets.
-            # total_assets -= loss
-            total_assets -= 0
+            total_assets -= loss
+            # total_assets -= 0
 
             # Update holdings value.
             holdings_value = self._calculate_holdings_value(tar_positions_amount, cur_close)
@@ -194,6 +199,9 @@ class BaseEngine(object):
             # Update return.
             returns = roe - self.roe_dic[last_date]
             self.return_dic[cur_date] = returns
+
+            # Update total assets.
+            self.total_assets_dic[cur_date] = total_assets
 
             log_info = 'Date: {0} | ' \
                        'Profit: {1:.3f} | ' \
@@ -238,7 +246,11 @@ class BaseEngine(object):
 
     def plot(self):
         plt.figure()
-        pd.Series(self.roe_dic).plot()
+        roe_se = pd.Series(self.roe_dic)
+        roe_se.plot()
+        self.bench_roe_se.plot()
+        hedge_se = ((roe_se - self.bench_roe_se) + 1).plot()
+        hedge_se.plot()
         plt.show()
 
     @staticmethod
