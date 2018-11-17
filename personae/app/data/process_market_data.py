@@ -91,8 +91,17 @@ def process_market_data(
     # Calculate factors.
     TimeInspector.set_time_mark()
 
-    TimeInspector.log_cost_time('Finished calculating LABEL_1, ALPHA.')
-    df['LABEL_1'] = df['LABEL_0'].groupby(level='DATE').apply(lambda x: (x - x.mean()) / x.std())
+    TimeInspector.log_cost_time('Finished calculating LABEL_ALPHA.')
+    df['LABEL_ALPHA'] = df['LABEL_RETURN'].groupby(
+        level='DATE'
+    ).apply(
+        lambda x: (x - x.mean()) / x.std()
+    )
+    # df['LABEL_EWM_ALPHA'] = df['LABEL_EWM_RETURN'].groupby(
+    #     level='DATE'
+    # ).apply(
+    #     lambda x: (x - x.mean()) / x.std()
+    # )
     TimeInspector.set_time_mark()
     # Due to bug for pickle in OSX, https://stackoverflow.com/questions/31468117/
     # df.to_pickle(processed_data_path)
@@ -114,7 +123,10 @@ def process_market_data(
     TimeInspector.log_cost_time('Finished saving processed split {} df to {}'.format(data_type, processed_data_dir))
 
 
-args_parser = argparse.ArgumentParser(prog='data_preprocessor')
+args_parser = argparse.ArgumentParser(
+    prog='data_preprocessor',
+    description='Indicate market type, market cons dir, and raw, processed dirs to pre-process data.'
+)
 
 args_parser.add_argument(
     '-t',

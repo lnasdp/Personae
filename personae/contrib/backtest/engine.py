@@ -17,7 +17,7 @@ class BaseEngine(object):
                  start_date='2005-01-01',
                  end_date='2018-11-01',
                  cash=1.e8,
-                 prefer=0.9,
+                 prefer=0.95,
                  charge=0.0015,
                  slippage=0.01,
                  benchmark='sh000905',
@@ -46,7 +46,6 @@ class BaseEngine(object):
 
         # Backtest dates.
         self.iter_dates = iter(self.available_dates)
-        self.backtest_end_date = None
 
         # Backtest trade info.
         self.cash = cash
@@ -156,17 +155,17 @@ class BaseEngine(object):
 
             })
 
-            # Check target positions weight.
-            self.check_tar_positions_weight(tar_positions_weight)
-
             # Forward fill target positions weight.
-            tar_positions_weight = self._forward_fill_tar_positions_weight(tar_positions_weight, cur_positions_weight)
+            tar_positions_weight = self._zero_fill_tar_positions_weight(tar_positions_weight, cur_positions_weight)
             tar_positions_amount = self._calculate_positions_amount(
                 tar_positions_weight,
                 cur_close,
                 total_assets,
                 self.prefer
             )
+
+            # Check target positions weight.
+            self.check_tar_positions_weight(tar_positions_weight)
 
             self.positions_weight_dic[cur_date] = tar_positions_weight
             self.positions_amount_dic[cur_date] = tar_positions_amount
@@ -222,35 +221,52 @@ class BaseEngine(object):
             )
 
             last_date, cur_date, last_close = cur_date, self._get_next_date(self.iter_dates), cur_close
-        # Update backtest end date.
-        self.backtest_end_date = last_date
         TimeInspector.log_cost_time('Finished backtest.')
 
     def analyze(self):
-        # Portfolio.
-        roe = self.roe_dic[self.backtest_end_date]
-        returns_se = pd.Series(self.return_dic)
-        returns_mean = returns_se.mean()
-        returns_std = returns_se.std()
-        annual = returns_mean * 250
-        sharpe = returns_mean / returns_std * np.sqrt(250)
-        mdd = ((returns_se.cumsum() - returns_se.cumsum().cummax()) / (1 + returns_se.cumsum().cummax())).min()
-        performance = pd.Series({
-            'annual': annual,
-            'sharpe': sharpe,
-            'mdd': mdd,
-            'roe': roe
-        })
-        self.logger.warning('\n{}\n'.format(performance))
-        return performance
-
-    def plot(self):
+        # Inner func.
+        def _analyze(returns_se, roe):
+            returns_mean = returns_se.mean()
+            returns_std = returns_se.std()
+            annual = returns_mean * 250
+            sharpe = returns_mean / returns_std * np.sqrt(250)
+            mdd = ((returns_se.cumsum() - returns_se.cumsum().cummax()) / (1 + returns_se.cumsum().cummax())).min()
+            performance = pd.Series({
+                'annual': annual,
+                'sharpe': sharpe,
+                'mdd': mdd,
+                'roe': roe,
+            })
+            return performance
+        # Long.
+        long_roe_se = pd.Series(self.roe_dic)
+        long_returns_se = pd.Series(self.return_dic)
+        long_performance = _analyze(long_returns_se, long_roe_se.iloc[-1])
+        # Hedge.
+        hedge_returns_se = long_returns_se - self.bench_return_se
+        hedge_roe_se = ((long_roe_se - self.bench_roe_se) + 1)
+        hedge_performance = _analyze(hedge_returns_se, hedge_roe_se.iloc[-1])
+        # Bench.
+        bench_performance = _analyze(self.bench_return_se, self.bench_roe_se.iloc[-1])
+        # Result.
+        result = {
+            'Long': long_performance,
+            'Hedge': hedge_performance,
+            'Bench': bench_performance
+        }
+        # Log.
+        self.logger.warning('\n{}\n'.format(
+            pd.DataFrame(result)
+        ))
+        # Plot.
         plt.figure()
-        roe_se = pd.Series(self.roe_dic)
-        roe_se.plot()
-        self.bench_roe_se.plot()
-        hedge_se = ((roe_se - self.bench_roe_se) + 1).plot()
-        hedge_se.plot()
+        roe_concat_df = pd.concat([
+            hedge_roe_se,
+            long_roe_se,
+            self.bench_roe_se
+        ], axis=1)
+        roe_concat_df.columns = ['HEDGE', 'LONG', 'BENCH']
+        roe_concat_df.plot()
         plt.show()
 
     @staticmethod
@@ -262,7 +278,14 @@ class BaseEngine(object):
 
     @staticmethod
     def _calculate_positions_amount(positions_weight, close, total_assets, prefer):
-        positions_amount = (prefer * total_assets * positions_weight).floordiv(close, fill_value=0)
+        # Trade cash.
+        trade_cash = prefer * total_assets
+        # Positions cash.
+        positions_cash = trade_cash * positions_weight
+        # Positions amount.
+        positions_amount = positions_cash.div(close, fill_value=0)
+        # Normalize amount.
+        positions_amount = (positions_amount / 100).apply(np.floor) * 100
         return positions_amount
 
     @staticmethod
@@ -273,10 +296,6 @@ class BaseEngine(object):
 
     @staticmethod
     def _calculate_profit(positions: pd.Series, cur_close: pd.Series, last_close: pd.Series):
-        # Forward fill close, for some codes not exist today.
-        close_concat = pd.concat([last_close, cur_close], axis=1, sort=False).fillna(method='ffill', axis=1)
-        close_concat.columns = ['LAST', 'CUR']
-        cur_close = close_concat.fillna(method='ffill', axis=1).loc(axis=1)['CUR']
         # Close diff.
         close_diff = cur_close.sub(last_close, fill_value=0)
         # Profit.
@@ -308,13 +327,13 @@ class BaseEngine(object):
         return cur_close
 
     @staticmethod
-    def _forward_fill_tar_positions_weight(tar_positions_weight, cur_positions_weight):
+    def _zero_fill_tar_positions_weight(tar_positions_weight, cur_positions_weight):
         positions_weight_concat = pd.concat(
             [cur_positions_weight, tar_positions_weight],
             axis=1,
             sort=False
         ).fillna(
-            method='ffill',
+            value=0,
             axis=1
         )
         positions_weight_concat.columns = ['CUR', 'TAR']

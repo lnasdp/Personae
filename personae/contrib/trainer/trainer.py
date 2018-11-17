@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from abc import abstractmethod
+from concurrent.futures import ProcessPoolExecutor
 
 from personae.contrib.model.model import BaseModel
 from personae.contrib.data.handler import BaseDataHandler

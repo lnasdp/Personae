@@ -166,8 +166,11 @@ class BaseDataHandler(object):
 class PredictorDataHandler(BaseDataHandler):
 
     def setup_label_names(self):
-        self.label_name = 'LABEL_1'
-        self.label_names = ['LABEL_0', 'LABEL_1']
+        self.label_name = 'LABEL_ALPHA'
+        self.label_names = [
+            'LABEL_RETURN',
+            'LABEL_ALPHA',
+        ]
 
     def setup_label(self):
         pass

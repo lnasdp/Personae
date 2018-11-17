@@ -7,6 +7,10 @@ def returns(df: pd.DataFrame, key, shift_window=0):
     return df[key].pct_change().shift(shift_window)
 
 
+def ewm(df: pd.DataFrame, key, span=5):
+    return df[key].ewm(span=span).mean()
+
+
 def diff(df: pd.DataFrame, key, window):
     return df[key].diff(periods=window)
 
@@ -44,7 +48,8 @@ def get_name_func_args_pairs(data_type='stock'):
 
     # 1. return.
     name_func_args_pairs.append(('RETURN', returns, [close, 0]))
-    name_func_args_pairs.append(('LABEL_0', returns, [close, -2]))
+    name_func_args_pairs.append(('LABEL_RETURN', returns, [close, -2]))
+    # name_func_args_pairs.append(('LABEL_EWM_RETURN', ewm, [close, 5]))
 
     # 2. adjust_price_volume_rolling_ic_window.
     for w in windows:
@@ -52,9 +57,23 @@ def get_name_func_args_pairs(data_type='stock'):
         name_func_args_pairs.append((factor_name, rolling_ic, [close, 'VOLUME', w]))
 
     if data_type == 'stock':
-        fields = ['ADJUST_PRICE', 'VOLUME', 'CHANGE', 'MONEY']
+        fields = [
+            'ADJUST_PRICE',
+            'VOLUME',
+            'CHANGE',
+            'TURNOVER',
+            'MONEY',
+            'TRADED_MARKET_VALUE',
+            'PE_TTM',
+            'PS_TTM',
+            'PC_TTM',
+            'PB'
+        ]
     else:
-        fields = ['CLOSE', 'VOLUME']
+        fields = [
+            'CLOSE',
+            'VOLUME'
+        ]
 
     for field in fields:
         # 3. field_diff_window.

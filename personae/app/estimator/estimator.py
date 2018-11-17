@@ -213,6 +213,5 @@ class Estimator(object):
         # Start backtest.
         self.backtest_engine.run(self.strategy)
         self.backtest_engine.analyze()
-        self.backtest_engine.plot()
 
 
