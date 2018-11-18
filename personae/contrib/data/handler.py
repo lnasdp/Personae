@@ -176,7 +176,21 @@ class PredictorDataHandler(BaseDataHandler):
         pass
 
     def setup_feature_names(self):
-        self.feature_names = sorted(list(set(self.processed_df.columns) - set(self.label_names)))
+        unused_features = [
+            # 'CLOSE',
+            # 'ADJUST_PRICE',
+            # 'VOLUME',
+            'TRADED_MARKET_VALUE',
+            'MARKET_VALUE',
+            'PE_TTM',
+            'PS_TTM',
+            'PC_TTM',
+            'MONEY',
+            'PB'
+        ]
+        self.feature_names = sorted(list(
+            set(self.processed_df.columns) - set(self.label_names) - set(unused_features)
+        ))
 
     def setup_static_data(self):
         split_data = self.get_split_data_by_dates(self.train_start_date,

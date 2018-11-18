@@ -57,6 +57,7 @@ class MLTopKMarginEqualWeightStrategy(BaseStrategy):
             codes,
             cur_date,
             cur_close,
+            cur_prefer,
             cur_total_assets,
             cur_positions_weight,
             cur_positions_amount,
@@ -76,6 +77,7 @@ class MLTopKMarginEqualWeightStrategy(BaseStrategy):
             tar_positions_weight,
             cur_positions_amount,
             cur_close,
+            cur_prefer,
             cur_total_assets,
             valid_margin_positions_weight,
         )
@@ -99,13 +101,14 @@ class MLTopKMarginEqualWeightStrategy(BaseStrategy):
             tar_positions_weight,
             cur_positions_amount,
             cur_close,
+            cur_prefer,
             cur_total_asset,
             valid_margin_positions_weight,
     ):
         # Get valid margin positions amount.
         valid_margin_positions_amount = cur_positions_amount[valid_margin_positions_weight.index].dropna()
-        # w2 = c2 * p2 / t2
-        c2_mul_p2_over_t2 = (valid_margin_positions_amount * cur_close).dropna() / cur_total_asset
+        # w2 = (c2 * p2) / (t2 * r2)
+        c2_mul_p2_over_t2 = (valid_margin_positions_amount * cur_close).dropna() / (cur_total_asset * cur_prefer)
         tar_positions_weight[c2_mul_p2_over_t2.index] = c2_mul_p2_over_t2
         return tar_positions_weight
 

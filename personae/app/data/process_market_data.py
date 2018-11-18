@@ -21,12 +21,15 @@ def _load_raw_df(csv_path, _data_type='stock'):
     _df = _df.rename(columns={'index_code': 'code'})
     # Upper case columns.
     _df.columns = map(str.upper, _df.columns)
+    # Remove unused columns.
+    used_columns = sorted(list(set(_df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'}))
+    used_columns.sort()
+    _df = _df[used_columns]
     # Set date as index, and sort it.
     _df = _df.set_index('DATE').sort_index()
     # Calculate factors.
     for factor_name, calculator, args in factor.get_name_func_args_pairs(_data_type):
         _df[factor_name] = calculator(_df, *args)
-    # Reset index.
     _df = _df.reset_index('DATE')
     return _df
 
@@ -69,11 +72,6 @@ def process_market_data(
 
     # Load merged df.
     # df = pd.read_pickle(merged_data_path)  # type: pd.DataFrame
-
-    # Remove unused columns.
-    columns = sorted(list(set(df.columns) - {'REPORT_TYPE', 'REPORT_DATE', 'ADJUST_PRICE_F'}))
-    columns.sort()
-    df = df[columns]
 
     # Replace inf with nan.
     TimeInspector.set_time_mark()
@@ -166,15 +164,15 @@ def main(args):
 
     market_type = 'csi500'
 
-    # market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
+    market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
 
-    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
 
-    market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
+    # market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
 
-    raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
-    processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
+    # raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
+    # processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
 
     process_market_data(
         raw_data_dir,

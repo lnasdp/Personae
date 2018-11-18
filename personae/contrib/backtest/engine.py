@@ -149,10 +149,10 @@ class BaseEngine(object):
                 'codes': cur_codes,
                 'cur_date': cur_date,
                 'cur_close': cur_close,
+                'cur_prefer': self.prefer,
                 'cur_total_assets': total_assets,
                 'cur_positions_weight': cur_positions_weight,
                 'cur_positions_amount': cur_positions_amount,
-
             })
 
             # Forward fill target positions weight.
@@ -161,7 +161,8 @@ class BaseEngine(object):
                 tar_positions_weight,
                 cur_close,
                 total_assets,
-                self.prefer
+                self.prefer,
+                cur_positions_amount
             )
 
             # Check target positions weight.
@@ -277,7 +278,7 @@ class BaseEngine(object):
             ))
 
     @staticmethod
-    def _calculate_positions_amount(positions_weight, close, total_assets, prefer):
+    def _calculate_positions_amount(positions_weight, close, total_assets, prefer, c):
         # Trade cash.
         trade_cash = prefer * total_assets
         # Positions cash.
@@ -285,7 +286,7 @@ class BaseEngine(object):
         # Positions amount.
         positions_amount = positions_cash.div(close, fill_value=0)
         # Normalize amount.
-        positions_amount = (positions_amount / 100).apply(np.floor) * 100
+        positions_amount = ((positions_amount / 100) + 1e-12).apply(np.floor) * 100
         return positions_amount
 
     @staticmethod
