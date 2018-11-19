@@ -86,20 +86,49 @@ def process_market_data(
     df = df.set_index(['DATE', 'CODE'])
     df = df.sort_index(level=[0, 1])
 
-    # Calculate factors.
+    # Calculate labels.
     TimeInspector.set_time_mark()
-
-    TimeInspector.log_cost_time('Finished calculating LABEL_ALPHA.')
     df['LABEL_ALPHA'] = df['LABEL_RETURN'].groupby(
         level='DATE'
     ).apply(
         lambda x: (x - x.mean()) / x.std()
     )
-    # df['LABEL_EWM_ALPHA'] = df['LABEL_EWM_RETURN'].groupby(
-    #     level='DATE'
-    # ).apply(
-    #     lambda x: (x - x.mean()) / x.std()
-    # )
+    TimeInspector.log_cost_time('Finished calculating LABEL_ALPHA.')
+
+    TimeInspector.set_time_mark()
+
+    def exp_weighted_mean(x):
+        alpha = 0.9
+        w = alpha ** np.arange(0, len(x)).astype(np.float32)
+        w /= w.sum()
+        return np.nansum(w * x)
+
+    # df['LABEL_EWM_RETURN'] = df['LABEL_RETURN'].groupby(
+    #     level='CODE'
+    # ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
+
+    a = df['LABEL_RETURN'].groupby(
+        level='CODE'
+    ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
+
+    # df['LABEL_EWM_RETURN'] = df['LABEL_RETURN'].groupby(
+    #     level='CODE'
+    # ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
+
+    b = df['LABEL_RETURN'].groupby(
+        level='CODE'
+    ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
+
+    TimeInspector.log_cost_time('Finished calculating LABEL_EWM_RETURN.')
+
+    TimeInspector.set_time_mark()
+    df['LABEL_EWM_ALPHA'] = df['LABEL_EWM_RETURN'].groupby(
+        level='DATE'
+    ).apply(
+        lambda x: (x - x.mean()) / x.std()
+    )
+    TimeInspector.log_cost_time('Finished calculating LABEL_EWM_ALPHA.')
+
     TimeInspector.set_time_mark()
     # Due to bug for pickle in OSX, https://stackoverflow.com/questions/31468117/
     # df.to_pickle(processed_data_path)
