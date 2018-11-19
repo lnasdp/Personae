@@ -1,11 +1,13 @@
 # coding=utf-8
 
 import pandas as pd
+import numpy as np
 
 from sklearn.preprocessing import StandardScaler
 from abc import abstractmethod
 
 from personae.utility import profiler
+from personae.utility.logger import get_logger
 
 
 class BaseDataHandler(object):
@@ -69,6 +71,8 @@ class BaseDataHandler(object):
         self.rolling_total_parts = 0
         self.rolling_period = kwargs.get('rolling_period', 30)
 
+        self.logger = get_logger('HANDLER')
+
         profiler.TimeInspector.set_time_mark()
         self.setup_label_names()
         profiler.TimeInspector.log_cost_time('Finished loading label names.')
@@ -89,6 +93,10 @@ class BaseDataHandler(object):
         self.split_rolling_dates()
         self.setup_rolling_data()
         profiler.TimeInspector.log_cost_time('Finished loading rolling data.')
+
+        profiler.TimeInspector.set_time_mark()
+        self.check_ic()
+        profiler.TimeInspector.log_cost_time('Finished check ic.')
 
     def split_rolling_dates(self):
         # 1. Setup rolling time delta.
@@ -131,6 +139,25 @@ class BaseDataHandler(object):
             self.rolling_test_start_dates.append(cur_test_start_date)
             self.rolling_test_end_dates.append(cur_test_end_date)
         self.rolling_total_parts = len(self.rolling_train_start_dates)
+
+    def check_ic(self):
+        # Get x space.
+        x_space = len(self.x_train.columns)
+        # Calculate ic.
+        ic = [
+            np.corrcoef(self.x_train.values[:, i], self.y_train.values)[0][1] for i in range(x_space)
+        ]
+        ic = np.abs(np.array(ic))
+        # Info.
+        info = 'Absolute IC info: Mean: {0:.4f} | Max: {1:.4f} | Min: {2:.4f}'
+        # Log.
+        self.logger.warning(
+            info.format(
+                ic.mean(),
+                ic.max(),
+                ic.min(),
+            )
+        )
 
     @abstractmethod
     def setup_label_names(self):

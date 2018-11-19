@@ -26,7 +26,7 @@ class BaseModel(object):
         self.save_path = None
 
         # Early stop round.
-        self.early_stop_round = kwargs.get('early_stop_round', 100)
+        self.early_stop_round = kwargs.get('early_stop_round', 50)
 
     @abstractmethod
     def fit(self, **kwargs):
@@ -299,7 +299,7 @@ class GBMModel(BaseModel):
                                valid_sets=[train_set, validation_set],
                                evals_result=eval_result,
                                num_boost_round=self.boost_round,
-                               early_stopping_rounds=self.early_stop_round,)
+                               early_stopping_rounds=self.early_stop_round)
 
     def predict(self, x_test, **kwargs):
         self.assert_model()

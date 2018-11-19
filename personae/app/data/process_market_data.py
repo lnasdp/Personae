@@ -30,6 +30,7 @@ def _load_raw_df(csv_path, _data_type='stock'):
     # Calculate factors.
     for factor_name, calculator, args in factor.get_name_func_args_pairs(_data_type):
         _df[factor_name] = calculator(_df, *args)
+    # Reset index.
     _df = _df.reset_index('DATE')
     return _df
 
@@ -95,31 +96,25 @@ def process_market_data(
     )
     TimeInspector.log_cost_time('Finished calculating LABEL_ALPHA.')
 
-    TimeInspector.set_time_mark()
-
-    def exp_weighted_mean(x):
-        alpha = 0.9
-        w = alpha ** np.arange(0, len(x)).astype(np.float32)
-        w /= w.sum()
-        return np.nansum(w * x)
-
+    # TimeInspector.set_time_mark()
+    # def ewm(x):
+    #     alpha = 0.9
+    #     w = alpha ** np.arange(0, len(x)).astype(np.float32)
+    #     w /= w.sum()
+    #     return np.nansum(w * x)
+    #
     # df['LABEL_EWM_RETURN'] = df['LABEL_RETURN'].groupby(
     #     level='CODE'
-    # ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
-
-    a = df['LABEL_RETURN'].groupby(
-        level='CODE'
-    ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
-
-    # df['LABEL_EWM_RETURN'] = df['LABEL_RETURN'].groupby(
-    #     level='CODE'
-    # ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
-
-    b = df['LABEL_RETURN'].groupby(
-        level='CODE'
-    ).apply(lambda x: x.rolling(5, min_periods=1).apply(exp_weighted_mean, raw=True).shift(-1 * 5 + 1))
-
-    TimeInspector.log_cost_time('Finished calculating LABEL_EWM_RETURN.')
+    # ).apply(
+    #     lambda x: x.rolling(
+    #         5,
+    #         min_periods=1,
+    #         center='right'
+    #     ).apply(
+    #         ewm,
+    #         raw=True
+    #     ).shift(-1 * 5 + 1))
+    # TimeInspector.log_cost_time('Finished calculating LABEL_EWM_RETURN.')
 
     TimeInspector.set_time_mark()
     df['LABEL_EWM_ALPHA'] = df['LABEL_EWM_RETURN'].groupby(
@@ -193,15 +188,13 @@ def main(args):
 
     market_type = 'csi500'
 
-    market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
+    # market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
+    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
+    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
 
-    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
-    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
-
-    # market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
-
-    # raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
-    # processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
+    market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
+    raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
+    processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
 
     process_market_data(
         raw_data_dir,

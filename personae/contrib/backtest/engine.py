@@ -25,6 +25,7 @@ class BaseEngine(object):
 
         # Data df.
         self.stock_df = stock_df.loc(axis=0)[start_date: end_date, :]
+        self.stock_df = self.stock_df[~(self.stock_df['RETURN'].abs() > 0.98)]
         self.bench_df = bench_df.loc(axis=0)[start_date: end_date, benchmark]
 
         # Strategy.
@@ -112,6 +113,9 @@ class BaseEngine(object):
                 # Here, all stock cannot trade on this day, we should update positions by last date.
                 self.positions_weight_dic[cur_date] = self.positions_weight_dic[last_date]
                 self.positions_amount_dic[cur_date] = self.positions_amount_dic[last_date]
+                self.roe_dic[cur_date] = self.roe_dic[last_date]
+                self.return_dic[cur_date] = self.return_dic[last_date]
+                self.total_assets_dic[cur_date] = self.total_assets_dic[last_date]
                 # Update last date and current date.
                 last_date, cur_date = cur_date, self._get_next_date(self.iter_dates)
                 # Log and continue.
@@ -218,7 +222,7 @@ class BaseEngine(object):
                 cash,
                 holdings_value,
                 roe,
-                returns * initial_cash)
+                returns)
             )
 
             last_date, cur_date, last_close = cur_date, self._get_next_date(self.iter_dates), cur_close
@@ -272,7 +276,7 @@ class BaseEngine(object):
 
     @staticmethod
     def check_tar_positions_weight(tar_positions):
-        if tar_positions.sum() > 1.0001 or tar_positions.sum() < -1.0001:
+        if tar_positions.sum() > 1.001 or tar_positions.sum() < -1.001:
             raise ValueError('Invalid target positions weight: {}, please check your strategy.'.format(
                 tar_positions.sum()
             ))

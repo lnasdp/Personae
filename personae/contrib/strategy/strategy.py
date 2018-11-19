@@ -91,6 +91,7 @@ class MLTopKMarginEqualWeightStrategy(BaseStrategy):
         valid_top_k_scores_index = list(set(top_k_scores.index) - set(invalid_top_k_scores.index))
         # Get new top k.
         valid_top_k_scores = top_k_scores.loc(axis=0)[valid_top_k_scores_index]
+        valid_top_k_scores = tar_positions_weight[valid_top_k_scores.index].dropna()
         # Update target positions.
         if len(valid_top_k_scores) > 0 and np.sum(scores) != 0:
             tar_positions_weight[valid_top_k_scores.index] = weight_last / len(valid_top_k_scores)

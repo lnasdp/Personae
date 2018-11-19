@@ -1,10 +1,29 @@
 # coding=utf-8
 
 import pandas as pd
+import numpy as np
 
 
 def returns(df: pd.DataFrame, key, shift_window=0):
     return df[key].pct_change().shift(shift_window)
+
+
+def ewm(df: pd.DataFrame, key, alpha=0.9, span=5):
+
+    def _ewm(x):
+        w = alpha ** np.arange(0, len(x)).astype(np.float32)
+        w /= w.sum()
+        return np.nansum(w * x)
+
+    return df[key].rolling(
+        window=span,
+        min_periods=1,
+    ).apply(
+        lambda x: _ewm(x),
+        raw=True
+    ).shift(
+        -1 * span + 1
+    )
 
 
 def normalize(df: pd.DataFrame, tar_key, use_key):
@@ -50,11 +69,12 @@ def get_name_func_args_pairs(data_type='stock'):
 
     close = 'ADJUST_PRICE' if data_type == 'stock' else 'CLOSE'
 
-    name_func_args_pairs, windows = [], [3, 5, 10, 20, 30, 60, 120]
+    name_func_args_pairs, windows = [], [3, 5, 10, 15, 20, 25, 30, 60, 120]
 
     # return.
     name_func_args_pairs.append(('RETURN', returns, [close, 0]))
     name_func_args_pairs.append(('LABEL_RETURN', returns, [close, -2]))
+    name_func_args_pairs.append(('LABEL_EWM_RETURN', ewm, ['LABEL_RETURN']))
 
     for w in windows:
         factor_name = '{}_VOLUME_IC_{}'.format(close, w)
