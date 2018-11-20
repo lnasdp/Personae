@@ -211,7 +211,7 @@ class Estimator(object):
         )
 
         # Start backtest.
-        self.backtest_engine.run(self.strategy)
-        self.backtest_engine.analyze()
+        long_roe_se, long_returns_se, bench_roe_se, bench_returns_se = self.backtest_engine.run(self.strategy)
+        self.backtest_engine.analyze(long_roe_se, long_returns_se, bench_roe_se, bench_returns_se)
 
 

@@ -188,13 +188,13 @@ def main(args):
 
     market_type = 'csi500'
 
-    # market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
-    # raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
-    # processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
+    market_cons_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\market\processed'
+    raw_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\raw'
+    processed_data_dir = r'D:\Users\v-shuyw\data\ycz\data\market_data\data\processed'
 
-    market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
-    raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
-    processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
+    # market_cons_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market/processed"
+    # raw_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/raw"
+    # processed_data_dir = "/Users/shuyu/Desktop/Affair/Data/predictor/market_data/processed"
 
     process_market_data(
         raw_data_dir,

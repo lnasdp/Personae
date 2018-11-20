@@ -3,7 +3,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import logging
 
 from personae.utility import logger
 from personae.utility.profiler import TimeInspector
@@ -25,7 +24,6 @@ class BaseEngine(object):
 
         # Data df.
         self.stock_df = stock_df.loc(axis=0)[start_date: end_date, :]
-        self.stock_df = self.stock_df[~(self.stock_df['RETURN'].abs() > 0.98)]
         self.bench_df = bench_df.loc(axis=0)[start_date: end_date, benchmark]
 
         # Strategy.
@@ -54,15 +52,6 @@ class BaseEngine(object):
         self.charge = charge
         self.slippage = slippage
 
-        self.positions_weight_dic = dict()
-        self.positions_amount_dic = dict()
-        self.roe_dic = dict()
-        self.return_dic = dict()
-        self.total_assets_dic = dict()
-
-        self.bench_return_se = self.bench_df['CLOSE'].reset_index('CODE', drop=True).pct_change().fillna(0)
-        self.bench_roe_se = (self.bench_return_se + 1).cumprod()
-
         # Logger.
         self.logger = logger.get_logger('BACKTEST', **kwargs)
 
@@ -84,19 +73,30 @@ class BaseEngine(object):
         last_close = self.stock_df.loc(axis=0)[cur_date]['ADJUST_PRICE']
 
         # Positions.
-        self.positions_weight_dic[cur_date] = pd.Series(
+        positions_weight_dic = dict()
+        positions_amount_dic = dict()
+
+        positions_weight_dic[cur_date] = pd.Series(
             index=last_close.index.get_level_values(level='CODE'),
             data=0
         )
 
-        self.positions_amount_dic[cur_date] = pd.Series(
+        positions_amount_dic[cur_date] = pd.Series(
             index=last_close.index.get_level_values(level='CODE'),
             data=0
         )
 
-        self.total_assets_dic[cur_date] = cash
-        self.return_dic[cur_date] = 0.
-        self.roe_dic[cur_date] = 1.
+        # Performance.
+        roe_dic = dict()
+        return_dic = dict()
+        total_assets_dic = dict()
+
+        total_assets_dic[cur_date] = cash
+        return_dic[cur_date] = 0.
+        roe_dic[cur_date] = 1.
+
+        bench_returns_se = self.bench_df['CLOSE'].reset_index('CODE', drop=True).pct_change().fillna(0)
+        bench_roe_se = (bench_returns_se + 1).cumprod()
 
         # Last date.
         last_date, cur_date = cur_date, self._get_next_date(self.iter_dates)
@@ -109,13 +109,18 @@ class BaseEngine(object):
             # Get cur bar.
             try:
                 cur_bar = self.stock_df.loc(axis=0)[cur_date]  # type: pd.Series
+                # Get current available codes.
+                cur_codes = cur_bar.index.get_level_values(level='CODE')
+                # Get cur bar return, close.
+                cur_close = cur_bar['ADJUST_PRICE']
             except KeyError:
-                # Here, all stock cannot trade on this day, we should update positions by last date.
-                self.positions_weight_dic[cur_date] = self.positions_weight_dic[last_date]
-                self.positions_amount_dic[cur_date] = self.positions_amount_dic[last_date]
-                self.roe_dic[cur_date] = self.roe_dic[last_date]
-                self.return_dic[cur_date] = self.return_dic[last_date]
-                self.total_assets_dic[cur_date] = self.total_assets_dic[last_date]
+                # Update positions with last.
+                positions_weight_dic[cur_date] = positions_weight_dic[last_date]
+                positions_amount_dic[cur_date] = positions_amount_dic[last_date]
+                # Update performance with last.
+                roe_dic[cur_date] = roe_dic[last_date]
+                return_dic[cur_date] = 0.
+                total_assets_dic[cur_date] = total_assets_dic[last_date]
                 # Update last date and current date.
                 last_date, cur_date = cur_date, self._get_next_date(self.iter_dates)
                 # Log and continue.
@@ -123,14 +128,8 @@ class BaseEngine(object):
                 continue
 
             # Get current positions weight and amount (last date).
-            cur_positions_weight = self.positions_weight_dic[last_date]
-            cur_positions_amount = self.positions_amount_dic[last_date]
-
-            # Get current available codes.
-            cur_codes = cur_bar.index.get_level_values(level='CODE')
-
-            # Get cur bar return, close.
-            cur_close = cur_bar['ADJUST_PRICE']
+            cur_positions_weight = positions_weight_dic[last_date]
+            cur_positions_amount = positions_amount_dic[last_date]
 
             # Forward fill close.
             cur_close = self._forward_fill_cur_close(cur_close, last_close)
@@ -148,11 +147,15 @@ class BaseEngine(object):
             # Get total assets.
             total_assets = cash + holdings_value
 
+            # Get current available codes.
+            cur_available_codes = cur_codes[~(cur_bar['RETURN'].abs() > 0.98)]
+            cur_available_close = cur_close[cur_available_codes]
+
             # Call handle bar.
             tar_positions_weight = self.strategy.handle_bar(**{
-                'codes': cur_codes,
+                'codes': cur_available_codes,
                 'cur_date': cur_date,
-                'cur_close': cur_close,
+                'cur_close': cur_available_close,
                 'cur_prefer': self.prefer,
                 'cur_total_assets': total_assets,
                 'cur_positions_weight': cur_positions_weight,
@@ -166,14 +169,13 @@ class BaseEngine(object):
                 cur_close,
                 total_assets,
                 self.prefer,
-                cur_positions_amount
             )
 
             # Check target positions weight.
             self.check_tar_positions_weight(tar_positions_weight)
 
-            self.positions_weight_dic[cur_date] = tar_positions_weight
-            self.positions_amount_dic[cur_date] = tar_positions_amount
+            positions_weight_dic[cur_date] = tar_positions_weight
+            positions_amount_dic[cur_date] = tar_positions_amount
 
             # Get loss.
             loss = self._calculate_loss(
@@ -198,14 +200,14 @@ class BaseEngine(object):
             roe = total_assets / initial_cash
 
             # Update roe.
-            self.roe_dic[cur_date] = roe
+            roe_dic[cur_date] = roe
 
             # Update return.
-            returns = roe - self.roe_dic[last_date]
-            self.return_dic[cur_date] = returns
+            returns = roe - roe_dic[last_date]
+            return_dic[cur_date] = returns
 
             # Update total assets.
-            self.total_assets_dic[cur_date] = total_assets
+            total_assets_dic[cur_date] = total_assets
 
             log_info = 'Date: {0} | ' \
                        'Profit: {1:.3f} | ' \
@@ -227,10 +229,11 @@ class BaseEngine(object):
 
             last_date, cur_date, last_close = cur_date, self._get_next_date(self.iter_dates), cur_close
         TimeInspector.log_cost_time('Finished backtest.')
+        return pd.Series(roe_dic), pd.Series(return_dic), bench_roe_se, bench_returns_se
 
-    def analyze(self):
+    def analyze(self, long_roe_se, long_returns_se, bench_roe_se, bench_returns_se):
         # Inner func.
-        def _analyze(returns_se, roe):
+        def _analyze(returns_se, roe_se):
             returns_mean = returns_se.mean()
             returns_std = returns_se.std()
             annual = returns_mean * 250
@@ -240,24 +243,22 @@ class BaseEngine(object):
                 'annual': annual,
                 'sharpe': sharpe,
                 'mdd': mdd,
-                'roe': roe,
+                'roe': roe_se.iloc[-1],
             })
             return performance
         # Long.
-        long_roe_se = pd.Series(self.roe_dic)
-        long_returns_se = pd.Series(self.return_dic)
-        long_performance = _analyze(long_returns_se, long_roe_se.iloc[-1])
-        # Hedge.
-        hedge_returns_se = long_returns_se - self.bench_return_se
-        hedge_roe_se = ((long_roe_se - self.bench_roe_se) + 1)
-        hedge_performance = _analyze(hedge_returns_se, hedge_roe_se.iloc[-1])
+        long_performance = _analyze(long_returns_se, long_roe_se)
         # Bench.
-        bench_performance = _analyze(self.bench_return_se, self.bench_roe_se.iloc[-1])
+        bench_performance = _analyze(bench_returns_se, bench_roe_se)
+        # Hedge.
+        hedge_returns_se = long_returns_se - bench_returns_se
+        hedge_roe_se = ((long_roe_se - bench_roe_se) + 1)
+        hedge_performance = _analyze(hedge_returns_se, hedge_roe_se)
         # Result.
         result = {
             'Long': long_performance,
+            'Bench': bench_performance,
             'Hedge': hedge_performance,
-            'Bench': bench_performance
         }
         # Log.
         self.logger.warning('\n{}\n'.format(
@@ -268,7 +269,7 @@ class BaseEngine(object):
         roe_concat_df = pd.concat([
             hedge_roe_se,
             long_roe_se,
-            self.bench_roe_se
+            bench_roe_se
         ], axis=1)
         roe_concat_df.columns = ['HEDGE', 'LONG', 'BENCH']
         roe_concat_df.plot()
@@ -282,7 +283,7 @@ class BaseEngine(object):
             ))
 
     @staticmethod
-    def _calculate_positions_amount(positions_weight, close, total_assets, prefer, c):
+    def _calculate_positions_amount(positions_weight, close, total_assets, prefer):
         # Trade cash.
         trade_cash = prefer * total_assets
         # Positions cash.
@@ -290,7 +291,8 @@ class BaseEngine(object):
         # Positions amount.
         positions_amount = positions_cash.div(close, fill_value=0)
         # Normalize amount.
-        positions_amount = ((positions_amount / 100) + 1e-12).apply(np.floor) * 100
+        positions_amount = positions_amount - positions_amount % 100
+        # positions_amount = ((positions_amount / 100) + 1e-12).apply(np.floor) * 100
         return positions_amount
 
     @staticmethod

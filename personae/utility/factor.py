@@ -69,7 +69,7 @@ def get_name_func_args_pairs(data_type='stock'):
 
     close = 'ADJUST_PRICE' if data_type == 'stock' else 'CLOSE'
 
-    name_func_args_pairs, windows = [], [3, 5, 10, 15, 20, 25, 30, 60, 120]
+    name_func_args_pairs, windows = [], [3, 5, 10, 15, 20, 25, 30, 60]
 
     # return.
     name_func_args_pairs.append(('RETURN', returns, [close, 0]))
